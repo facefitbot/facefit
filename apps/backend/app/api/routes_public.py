@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from html import escape
 from typing import Any
 
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.api.serializers import report_public_dict
 from app.core.config import settings as env_settings
 from app.core.exceptions import not_found
 from app.db.models import CtaClickEvent, GeneratedReport, ReportViewEvent
@@ -76,7 +78,7 @@ const textIntro=(source)=>Array.isArray(source)?"":(source?.intro || "");
 const textOutro=(source)=>Array.isArray(source)?"":(source?.outro || "");
 const MAP_POINTS=[{left:"50%",top:"18%"},{left:"50%",top:"33%"},{left:"35%",top:"37%"},{left:"61%",top:"52%"},{left:"50%",top:"65%"},{left:"68%",top:"75%"}];
 async function ctaClick(){
-  const res=await fetch(`/api/reports/${token}/cta-click`,{method:"POST"});
+  const res=await fetch(`/api/reports/${token}/cta-click`,{method:"POST",headers:{"ngrok-skip-browser-warning":"true"}});
   const data=await res.json();
   window.location.href=data.target_url || "#";
 }
@@ -97,7 +99,11 @@ function render(r){
     <footer class="footer"><div class="brand">Bella Vladi</div><div>${e(r.disclaimer)}</div></footer>
   </main>`;
 }
-fetch(`/api/reports/${token}`).then(r=>r.json()).then(d=>render(d.view_model)).catch(()=>{app.innerHTML='<div class="loading-card"><div class="eyebrow">Отчет недоступен</div><p>Не удалось загрузить публичный отчет.</p></div>'});
+const initialReport=__REPORT_JSON__;
+const loadReport=initialReport
+  ? Promise.resolve(initialReport)
+  : fetch(`/api/reports/${token}`,{headers:{"ngrok-skip-browser-warning":"true"}}).then(r=>r.json());
+loadReport.then(d=>render(d.view_model)).catch(()=>{app.innerHTML='<div class="loading-card"><div class="eyebrow">Отчет недоступен</div><p>Не удалось загрузить публичный отчет.</p></div>'});
 </script>
 </body>
 </html>
@@ -125,7 +131,8 @@ def public_report_page(token: str, request: Request, db: Session = Depends(get_d
     backend_url = (env_settings.backend_url or "").rstrip("/")
     if public_app_url and public_app_url != backend_url:
         return RedirectResponse(f"{public_app_url}/report/{_e(token)}")
-    return PUBLIC_REPORT_SHELL.replace("__TOKEN__", _e(token))
+    payload = json.dumps(report_public_dict(report, bot_settings), ensure_ascii=False).replace("</", "<\\/")
+    return PUBLIC_REPORT_SHELL.replace("__TOKEN__", _e(token)).replace("__REPORT_JSON__", payload)
 
     analysis = report.analysis
     report_json = report.report_json or {}

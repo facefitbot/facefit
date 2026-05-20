@@ -29,6 +29,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   if (!(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
+  headers.set("ngrok-skip-browser-warning", "true");
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
