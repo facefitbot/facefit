@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    <main class="slide">
+      <header class="topbar">
+        <div>
+          <div class="brand-small">Bella Vladi</div>
+          <div class="screen-title">AI Face Scan</div>
+        </div>
+        <div class="screen-meta">
+          <div>{{ user_name }} · {{ date }}</div>
+          <div class="scan-badge">{{ copy.face_map.subtitle }}</div>
+        </div>
+      </header>
+
+      <section class="scan-stage">
+        <div class="photo-panel">
+          <img src="{{ photo_src }}" alt="" />
+        </div>
+        <div class="scan-line"></div>
+
+        <svg class="scan-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <filter id="cleanGlow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.25" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {% for zone in zones.all %}
+            {% for shape in zone.shape %}
+              {% if shape.kind == "ellipse" %}
+                <ellipse class="zone-shape" cx="{{ shape.cx }}" cy="{{ shape.cy }}" rx="{{ shape.rx }}" ry="{{ shape.ry }}" fill="{{ zone.fill }}" stroke="{{ zone.stroke }}" stroke-width="0.28" />
+              {% elif shape.kind == "rect" %}
+                <rect class="zone-shape" x="{{ shape.x }}" y="{{ shape.y }}" width="{{ shape.w }}" height="{{ shape.h }}" rx="{{ shape.rx }}" fill="{{ zone.fill }}" stroke="{{ zone.stroke }}" stroke-width="0.28" />
+              {% elif shape.kind == "path" %}
+                <path class="zone-shape" d="{{ shape.d }}" fill="none" stroke="{{ zone.stroke }}" stroke-width="0.34" />
+              {% endif %}
+            {% endfor %}
+            <line class="leader" x1="{{ zone.line_x }}" y1="{{ zone.line_y }}" x2="{{ zone.anchor_x }}" y2="{{ zone.anchor_y }}" />
+          {% endfor %}
+        </svg>
+
+        <div class="rail rail-left">
+          {% for zone in zones.left %}
+            <div class="rail-label {{ zone.status_class }}" style="top: {{ zone.top }}%;">
+              <span class="rail-number">{{ "%02d"|format(zone.number) }}</span>
+              <span class="rail-text">{{ zone.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="rail rail-right">
+          {% for zone in zones.right %}
+            <div class="rail-label {{ zone.status_class }}" style="top: {{ zone.top }}%;">
+              <span class="rail-number">{{ "%02d"|format(zone.number) }}</span>
+              <span class="rail-text">{{ zone.label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="bottom-scan-panel">
+        <div class="panel-grid">
+          <div>
+            <div class="focus-label">Главный фокус</div>
+            <div class="focus-chips">
+              {% for item in copy.face_map.main_focus %}
+                <span class="chip">{{ item }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="legend">
+            {% for item in legend %}
+              <div class="legend-item"><span class="legend-dot {{ item.class }}"></span>{{ item.name }}</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="report-link">Открыть подробный отчет</div>
+      </section>
+    </main>
+  </body>
+</html>

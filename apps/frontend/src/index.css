@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #3e3631;
+  background: #fbf7f2;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.report-content h2 {
+  margin-top: 2rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.report-content p,
+.report-content li {
+  line-height: 1.65;
+}
+
+.report-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.report-content th,
+.report-content td {
+  border-bottom: 1px solid #eadbd1;
+  padding: 0.75rem;
+  text-align: left;
+}
+

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    <main class="slide">
+      <header class="header">
+        <div class="brand">Bella Vladi</div>
+        <div class="protocol-title">Summary</div>
+        <div class="meta">{{ user_name }} · {{ date }}</div>
+        <div class="badge">{{ copy.face_map.subtitle }}</div>
+      </header>
+
+      <section class="content">
+        <div class="section-kicker">Face Protocol</div>
+        <div class="section-title">Короткое резюме</div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <div class="card-title">Биологический возраст кожи</div>
+            <div class="card-text">{{ copy.summary.skin_age }}</div>
+          </article>
+          <article class="summary-card">
+            <div class="card-title">Тип кожи</div>
+            <div class="card-text">{{ copy.summary.skin_type }}</div>
+          </article>
+          <article class="summary-card">
+            <div class="card-title">Тип лица и старения</div>
+            <div class="card-text">{{ copy.summary.aging_type }}</div>
+          </article>
+          <article class="summary-card">
+            <div class="card-title">Сильные стороны</div>
+            <div class="card-text">{{ copy.summary.strengths }}</div>
+          </article>
+        </div>
+
+        <div class="summary-note">
+          Это визуальный эстетический протокол: без диагнозов, запугивания и обещаний гарантированного результата.
+        </div>
+      </section>
+
+      <div class="watermark">{{ watermark }}</div>
+    </main>
+  </body>
+</html>

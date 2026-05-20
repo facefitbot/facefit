@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Bella Vladi · Персональный протокол лица</title>
+<style>
+  :root {
+    --bg: #ece4d7;
+    --sheet: #faf5ec;
+    --sheet-2: #fffaf1;
+    --card: #fdfbf5;
+    --card-2: #f7f0e3;
+    --line: #e5d8c2;
+    --line-soft: #efe6d3;
+    --ink: #3a2a1e;
+    --ink-2: #5a4636;
+    --muted: #8c7868;
+    --accent: #a8755a;       /* camel/bronze */
+    --accent-2: #c89a7a;
+    --good: #8aa183;         /* muted sage */
+    --good-soft: rgba(138,161,131,0.22);
+    --attention: #c9a96a;    /* soft gold */
+    --attention-soft: rgba(201,169,106,0.22);
+    --priority: #c08474;     /* dusty rose */
+    --priority-soft: rgba(192,132,116,0.22);
+    --serif: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
+    --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+    --r: 18px;
+    --r-sm: 12px;
+    --shadow: 0 1px 0 rgba(58,42,30,0.04), 0 8px 24px rgba(58,42,30,0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 40px 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .sheet {
+    width: 1080px;
+    margin: 0 auto;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #fff8ea 0%, transparent 60%),
+      linear-gradient(180deg, var(--sheet-2) 0%, var(--sheet) 100%);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.6) inset,
+      0 30px 80px -30px rgba(58,42,30,0.25),
+      0 8px 24px rgba(58,42,30,0.08);
+    padding: 56px 56px 48px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Header ───────────────────────────────────── */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 36px;
+  }
+  .mono {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0.5px;
+    background: var(--sheet-2);
+  }
+  .eyebrow {
+    margin-top: 22px;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  h1.title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 58px;
+    line-height: 1.05;
+    letter-spacing: 0.5px;
+    margin: 14px 0 16px;
+    color: var(--ink);
+  }
+  h1.title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .subtitle {
+    font-size: 16px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 400;
+  }
+  .meta {
+    margin-top: 22px;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .meta b { color: var(--ink); font-weight: 600; letter-spacing: 0.18em; }
+
+  /* ── Section labels ──────────────────────────── */
+  .section-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 4px 0 14px;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Cards ───────────────────────────────────── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .card p, .card li {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .card ul {
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card ul li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 8px;
+  }
+  .card ul li::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    position: absolute; left: 0; top: 11px;
+  }
+  .card ul li:last-child { margin-bottom: 0; }
+
+  /* ── Top grid: 01-02 / 04 / 03-05 ─────────────── */
+  .grid-top {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr 1fr;
+    gap: 22px;
+  }
+  .col { display: flex; flex-direction: column; gap: 22px; }
+
+  /* Skin age stat */
+  .stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .stat-num {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .stat-unit {
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .progress {
+    height: 6px;
+    background: var(--line-soft);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 14px 0 10px;
+  }
+  .progress > span {
+    display: block;
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    border-radius: 6px;
+  }
+  .score-line {
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .score-line b { color: var(--ink); }
+
+  /* ── Face map card ───────────────────────────── */
+  .face-card {
+    background: var(--card);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+  }
+  .face-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(80% 70% at 50% 38%, #f3e0d0 0%, #e6cdb6 55%, #c9a98c 100%);
+    border: 1px solid var(--line-soft);
+  }
+  .face-image {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .face-overlay {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .zone-num {
+    fill: #fff;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .zone-num-bg {
+    fill: rgba(58,42,30,0.55);
+  }
+
+  .legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--sheet-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.good { background: var(--good); }
+  .dot.attention { background: var(--attention); }
+  .dot.priority { background: var(--priority); }
+
+  .zones-list {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+  }
+  .zones-list div {
+    font-size: 14px;
+    color: var(--ink-2);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .zones-list span.n {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    width: 18px;
+    text-align: right;
+  }
+
+  /* ── Bottom row 06-07-08 ──────────────────────── */
+  .grid-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 22px;
+    margin-top: 28px;
+  }
+
+  /* ── Growth zones (pills) ─────────────────────── */
+  .growth {
+    margin-top: 28px;
+  }
+  .growth .pills {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 4px;
+  }
+  .pill {
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--sheet-2);
+    border: 1px solid var(--line);
+    font-size: 15px;
+    color: var(--ink-2);
+    letter-spacing: 0.02em;
+  }
+  .pill.attn { background: var(--attention-soft); border-color: rgba(201,169,106,0.5); color: #6b541f; }
+  .pill.prio { background: var(--priority-soft); border-color: rgba(192,132,116,0.5); color: #7a3a2c; }
+
+  /* ── Final block ──────────────────────────────── */
+  .final {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 22px;
+    background: linear-gradient(180deg, #f6ecd9 0%, #efe1c8 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 30px 32px;
+  }
+  .final .lead {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .final .lead .label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .final .quote {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 30px;
+    line-height: 1.25;
+    color: var(--ink);
+    text-align: right;
+    align-self: center;
+  }
+
+  .disclaimer {
+    margin-top: 26px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 0 40px;
+  }
+
+  /* Decorative corner mark */
+  .sheet::before, .sheet::after {
+    content: "";
+    position: absolute;
+    width: 60px; height: 60px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+  .sheet::before { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
+  .sheet::after  { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="mono">BV</div>
+    <div class="eyebrow">Bella Vladi · Face Protocol</div>
+    <h1 class="title">Персональный <em>протокол</em> лица</h1>
+    <div class="subtitle">Эстетический AI-разбор в формате журнала</div>
+    <div class="meta"><b>АНАСТАСИЯ К.</b> &nbsp;·&nbsp; 15 МАЯ 2026</div>
+  </header>
+
+  <!-- TOP GRID -->
+  <section class="grid-top">
+
+    <!-- LEFT COLUMN -->
+    <div class="col">
+      <div class="card">
+        <div class="section-num">01</div>
+        <div class="section-title">Биологический возраст кожи</div>
+        <div class="stat-row">
+          <div class="stat-num">32</div>
+          <div class="stat-unit">лет</div>
+        </div>
+        <div class="progress"><span></span></div>
+        <div class="score-line">Состояние кожи · <b>78/100</b></div>
+        <p style="margin-top:12px;">Кожа выглядит на 3 года моложе паспортного возраста. Хороший тонус, ровный микрорельеф.</p>
+      </div>
+
+      <div class="card">
+        <div class="section-num">02</div>
+        <div class="section-title">Тип кожи</div>
+        <p style="margin:0 0 10px; font-family: var(--serif); font-size: 22px; color: var(--ink); font-style: italic;">Комбинированная, нормогидрированная</p>
+        <ul>
+          <li>Лёгкая жирность в T-зоне, щёки в норме.</li>
+          <li>Реакция на холод и стресс — лёгкое покраснение.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CENTER: FACE MAP -->
+    <div class="face-card">
+      <div class="section-num">04</div>
+      <div class="section-title">Карта зон лица</div>
+
+      <div class="face-wrap">
+        <!-- Заменить на: <img class="face-image" src="{{ photo_url }}" /> -->
+        <div class="face-image" style="background:
+          radial-gradient(40% 30% at 50% 32%, #f6e0cb 0%, transparent 70%),
+          radial-gradient(60% 50% at 50% 60%, #e8c8aa 0%, #c9a487 80%);"></div>
+
+        <svg class="face-overlay" viewBox="0 0 300 400" preserveAspectRatio="none">
+          <!-- 1 Лоб -->
+          <ellipse cx="150" cy="105" rx="78" ry="26"
+                   fill="var(--attention-soft)" stroke="var(--attention)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="150" cy="105" r="9"/>
+             <text class="zone-num" x="150" y="109" text-anchor="middle">1</text></g>
+
+          <!-- 2 Межбровье -->
+          <ellipse cx="150" cy="150" rx="10" ry="22"
+                   fill="var(--priority-soft)" stroke="var(--priority)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="172" cy="148" r="9"/>
+             <text class="zone-num" x="172" y="152" text-anchor="middle">2</text></g>
+
+          <!-- 3 Зона глаз -->
+          <ellipse cx="115" cy="165" rx="22" ry="11"
+                   fill="var(--priority-soft)" stroke="var(--priority)" stroke-width="1.2"/>
+          <ellipse cx="185" cy="165" rx="22" ry="11"
+                   fill="var(--priority-soft)" stroke="var(--priority)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="86" cy="165" r="9"/>
+             <text class="zone-num" x="86" y="169" text-anchor="middle">3</text></g>
+
+          <!-- 4 Носогубная зона -->
+          <ellipse cx="118" cy="235" rx="11" ry="28" transform="rotate(-12 118 235)"
+                   fill="var(--attention-soft)" stroke="var(--attention)" stroke-width="1.2"/>
+          <ellipse cx="182" cy="235" rx="11" ry="28" transform="rotate(12 182 235)"
+                   fill="var(--attention-soft)" stroke="var(--attention)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="92" cy="240" r="9"/>
+             <text class="zone-num" x="92" y="244" text-anchor="middle">4</text></g>
+
+          <!-- 5 Околоротовая -->
+          <ellipse cx="150" cy="290" rx="42" ry="20"
+                   fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="200" cy="290" r="9"/>
+             <text class="zone-num" x="200" y="294" text-anchor="middle">5</text></g>
+
+          <!-- 6 Овал лица -->
+          <path d="M55,260 Q70,360 150,378 Q230,360 245,260"
+                fill="var(--priority-soft)" stroke="var(--priority)" stroke-width="1.2"/>
+          <g><circle class="zone-num-bg" cx="60" cy="320" r="9"/>
+             <text class="zone-num" x="60" y="324" text-anchor="middle">6</text></g>
+        </svg>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="dot good"></span>Всё хорошо</div>
+        <div class="legend-item"><span class="dot attention"></span>Зона внимания</div>
+        <div class="legend-item"><span class="dot priority"></span>Приоритет</div>
+      </div>
+
+      <div class="zones-list">
+        <div><span class="n">1</span>Лоб</div>
+        <div><span class="n">2</span>Межбровье</div>
+        <div><span class="n">3</span>Зона глаз</div>
+        <div><span class="n">4</span>Носогубная зона</div>
+        <div><span class="n">5</span>Околоротовая</div>
+        <div><span class="n">6</span>Овал лица</div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col">
+      <div class="card">
+        <div class="section-num">03</div>
+        <div class="section-title">Тип лица и тип старения</div>
+        <p style="margin:0 0 4px; font-family: var(--serif); font-size: 22px; color: var(--ink); font-style: italic;">Овальный, мягкие черты</p>
+        <p style="margin:0 0 10px; font-size:14px; letter-spacing:0.18em; text-transform:uppercase; color: var(--accent);">Усталый тип старения</p>
+        <ul>
+          <li>Опущение уголков глаз и губ к вечеру.</li>
+          <li>Лёгкая потеря объёма в средней трети лица.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="section-num">05</div>
+        <div class="section-title">Почему это происходит</div>
+        <ul>
+          <li>Гипертонус жевательных и затылочных мышц.</li>
+          <li>Слабость мышц средней трети и шеи.</li>
+          <li>Привычка спать на боку и работать с наклонённой головой.</li>
+          <li>Недостаток лимфодренажа и поверхностное дыхание.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM ROW 06-07-08 -->
+  <section class="grid-bottom">
+    <div class="card">
+      <div class="section-num">06</div>
+      <div class="section-title">Ваши сильные стороны</div>
+      <ul>
+        <li>Хорошее качество кожи и ровный тон.</li>
+        <li>Симметричные черты и красивая линия скул.</li>
+        <li>Выраженная природная архитектура овала.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="section-num">07</div>
+      <div class="section-title">Что даст фейс-фитнес</div>
+      <ul>
+        <li>Подтянет овал и приподнимет уголки губ.</li>
+        <li>Уберёт отёчность и оживит взгляд.</li>
+        <li>Вернёт объём средней трети и сияние коже.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="section-num">08</div>
+      <div class="section-title">Прогноз по времени</div>
+      <ul>
+        <li>2 недели — уходит отёчность, свежее лицо.</li>
+        <li>1 месяц — подтянутый овал, открытый взгляд.</li>
+        <li>3 месяца — выраженный лифтинг и плотность кожи.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- GROWTH ZONES -->
+  <section class="growth">
+    <div class="section-num">09</div>
+    <div class="section-title">Зоны роста</div>
+    <div class="pills">
+      <span class="pill prio">Нависшее веко / мешки</span>
+      <span class="pill attn">Шея</span>
+      <span class="pill prio">Овал лица</span>
+      <span class="pill attn">Зона глаз</span>
+      <span class="pill">Качество кожи</span>
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="final">
+    <div class="lead">
+      <span class="label">Итог</span>
+      У вас красивая база и хороший потенциал. Регулярная работа с тонусом мышц и лимфой за 4–8 недель даст заметный, мягкий и естественный лифтинг — без вмешательств.
+    </div>
+    <div class="quote">
+      «Ваша красота —<br/>
+      в балансе<br/>
+      и&nbsp;внимании к&nbsp;себе.»
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    Это предварительный визуальный AI-разбор по фото. Не является медицинским заключением
+    и не заменяет консультацию специалиста.
+  </div>
+
+</div>
+
+</body>
+</html>

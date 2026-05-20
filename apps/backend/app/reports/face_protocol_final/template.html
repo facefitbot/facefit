@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Bella Vladi · Персональный протокол лица</title>
+<style>
+  :root {
+    --bg: #ece4d7;
+    --sheet: #faf5ec;
+    --sheet-2: #fffaf1;
+    --card: #fdfbf5;
+    --card-2: #f7f0e3;
+    --line: #e5d8c2;
+    --line-soft: #efe6d3;
+    --ink: #3a2a1e;
+    --ink-2: #5a4636;
+    --muted: #8c7868;
+    --accent: #a8755a;       /* camel/bronze */
+    --accent-2: #c89a7a;
+    --good: #8aa183;         /* muted sage */
+    --good-soft: rgba(138,161,131,0.22);
+    --attention: #c9a96a;    /* soft gold */
+    --attention-soft: rgba(201,169,106,0.22);
+    --priority: #c08474;     /* dusty rose */
+    --priority-soft: rgba(192,132,116,0.22);
+    --serif: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
+    --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+    --r: 18px;
+    --r-sm: 12px;
+    --shadow: 0 1px 0 rgba(58,42,30,0.04), 0 8px 24px rgba(58,42,30,0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 40px 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .sheet {
+    width: 1080px;
+    margin: 0 auto;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #fff8ea 0%, transparent 60%),
+      linear-gradient(180deg, var(--sheet-2) 0%, var(--sheet) 100%);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.6) inset,
+      0 30px 80px -30px rgba(58,42,30,0.25),
+      0 8px 24px rgba(58,42,30,0.08);
+    padding: 56px 56px 48px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Header ───────────────────────────────────── */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 28px;
+  }
+  .mono {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0.5px;
+    background: var(--sheet-2);
+  }
+  .eyebrow {
+    margin-top: 22px;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  h1.title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 58px;
+    line-height: 1.05;
+    letter-spacing: 0.5px;
+    margin: 14px 0 16px;
+    color: var(--ink);
+  }
+  h1.title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .subtitle {
+    font-size: 16px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 400;
+  }
+  .meta {
+    margin-top: 22px;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .meta b { color: var(--ink); font-weight: 600; letter-spacing: 0.18em; }
+
+  /* ── Section labels ──────────────────────────── */
+  .section-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 4px 0 12px;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Cards ───────────────────────────────────── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .card p, .card li {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .card ul {
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card ul li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 7px;
+  }
+  .card ul li::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    position: absolute; left: 0; top: 11px;
+  }
+  .card ul li:last-child { margin-bottom: 0; }
+  .kv-line {
+    margin: 0 0 6px;
+    font-size: 17px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .kv-line b,
+  .mini-heading {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .mini-heading {
+    margin-top: 12px;
+    font-size: 17px;
+  }
+  .compact-list li {
+    font-size: 16px;
+    line-height: 1.34;
+    margin-bottom: 5px;
+  }
+  .strong-base,
+  .why-lead,
+  .why-outro,
+  .benefits-outro {
+    margin: 10px 0 0;
+    font-size: 16px;
+    line-height: 1.38;
+    color: var(--ink-2);
+  }
+  .strong-base {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .benefits-outro {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 10px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* ── Top grid: 01-02 / 04 / 03-05 ─────────────── */
+  .grid-top {
+    display: grid;
+    grid-template-columns: 1fr 1.12fr 1fr;
+    grid-template-areas:
+      "age map aging"
+      "skin map why"
+      "strength benefits forecast";
+    gap: 22px;
+    align-items: stretch;
+  }
+  .col { display: contents; }
+  .age-card { grid-area: age; }
+  .skin-card { grid-area: skin; }
+  .strength-card { grid-area: strength; }
+  .map-card { grid-area: map; }
+  .benefits-card { grid-area: benefits; }
+  .forecast-card { grid-area: forecast; }
+  .aging-card { grid-area: aging; }
+  .why-card { grid-area: why; }
+
+  /* Skin age stat */
+  .stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .stat-num {
+    font-family: var(--serif);
+    font-size: 56px;
+    line-height: 1;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .stat-unit {
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .progress {
+    height: 6px;
+    background: var(--line-soft);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 14px 0 10px;
+  }
+  .progress > span {
+    display: block;
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    border-radius: 6px;
+  }
+  .score-line {
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .score-line b { color: var(--ink); }
+
+  /* ── Face map card ───────────────────────────── */
+  .face-card {
+    background: var(--card);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+  }
+  .face-wrap {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 540px;
+    aspect-ratio: auto;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(80% 70% at 50% 38%, #f3e0d0 0%, #e6cdb6 55%, #c9a98c 100%);
+    border: 1px solid var(--line-soft);
+  }
+  .face-image {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: 50% 42%;
+    display: block;
+  }
+  .face-overlay {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .zone-glow,
+  .zone-contour,
+  .zone-wash {
+    vector-effect: non-scaling-stroke;
+  }
+  .zone-glow {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.42;
+    filter: url(#zoneGlow);
+  }
+  .zone-contour {
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.18;
+    filter: url(#zoneSoftEdge);
+  }
+  .zone-wash {
+    stroke: none;
+    opacity: 0.14;
+  }
+  .zone-num {
+    fill: #fff;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .zone-num-bg {
+    fill: rgba(58,42,30,0.55);
+  }
+
+  .legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--sheet-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.good { background: var(--good); }
+  .dot.attention { background: var(--attention); }
+  .dot.priority { background: var(--priority); }
+
+  .zones-list {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+  }
+  .zones-list div {
+    font-size: 15px;
+    color: var(--ink-2);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .zones-list span.n {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    width: 18px;
+    text-align: right;
+  }
+
+  /* ── Bottom row 06-07-08 ──────────────────────── */
+  .grid-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 22px;
+    margin-top: 28px;
+  }
+
+  /* ── Growth zones (pills) ─────────────────────── */
+  .growth {
+    margin-top: 24px;
+  }
+  .growth .pills {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 4px;
+  }
+  .pill {
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--sheet-2);
+    border: 1px solid var(--line);
+    font-size: 15px;
+    color: var(--ink-2);
+    letter-spacing: 0.02em;
+  }
+  .pill.attn { background: var(--attention-soft); border-color: rgba(201,169,106,0.5); color: #6b541f; }
+  .pill.prio { background: var(--priority-soft); border-color: rgba(192,132,116,0.5); color: #7a3a2c; }
+
+  /* ── Final block ──────────────────────────────── */
+  .final {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 22px;
+    background: linear-gradient(180deg, #f6ecd9 0%, #efe1c8 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 26px 30px;
+  }
+  .final .lead {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  .final .lead .label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .final .quote {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 30px;
+    line-height: 1.25;
+    color: var(--ink);
+    text-align: right;
+    align-self: center;
+  }
+
+  .disclaimer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 0 40px;
+  }
+
+  /* Decorative corner mark */
+  .sheet::before, .sheet::after {
+    content: "";
+    position: absolute;
+    width: 60px; height: 60px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+  .sheet::before { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
+  .sheet::after  { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="mono">BV</div>
+    <div class="eyebrow">Bella Vladi · Face Protocol</div>
+    <h1 class="title">Персональный <em>протокол</em> лица</h1>
+    <div class="subtitle">Эстетический AI-разбор в формате журнала</div>
+    <div class="meta"><b>{{ user_name }}</b> &nbsp;·&nbsp; {{ analysis_date }}</div>
+  </header>
+
+  <!-- TOP GRID -->
+  <section class="grid-top">
+
+    <!-- LEFT COLUMN -->
+    <div class="col">
+      <div class="card age-card">
+        <div class="section-num">01</div>
+        <div class="section-title">Биологический возраст кожи</div>
+        <div class="stat-row">
+          <div class="stat-num">{{ skin_age_value }}</div>
+          <div class="stat-unit">{{ skin_age_unit }}</div>
+        </div>
+        <div class="progress"><span style="width: {{ skin_score_percent }}%;"></span></div>
+        <div class="score-line">Состояние кожи · <b>{{ skin_score }}</b></div>
+        <p style="margin-top:12px;">{{ skin_age_comment }}</p>
+      </div>
+
+      <div class="card skin-card">
+        <div class="section-num">02</div>
+        <div class="section-title">Тип кожи</div>
+        <p style="margin:0 0 10px; font-family: var(--serif); font-size: 22px; color: var(--ink); font-style: italic;">{{ skin_type_title }}</p>
+        <ul>
+          {% for bullet in skin_type_bullets %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="card strength-card">
+        <div class="section-num">06</div>
+        <div class="section-title">Ваши сильные стороны</div>
+        <ul>
+          {% for bullet in strengths %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- CENTER: FACE MAP -->
+    <div class="col">
+      <div class="face-card map-card">
+        <div class="section-num">04</div>
+        <div class="section-title">Карта зон лица</div>
+
+        <div class="face-wrap">
+          <img class="face-image" src="{{ photo_url }}" alt="" />
+
+          <svg class="face-overlay" viewBox="0 0 300 400" preserveAspectRatio="none">
+          <defs>
+            <filter id="zoneGlow" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
+              <feGaussianBlur stdDeviation="3.2" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+              </feMerge>
+            </filter>
+            <filter id="zoneSoftEdge" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+              <feGaussianBlur stdDeviation="0.6"/>
+            </filter>
+          </defs>
+
+          {% macro zone_ellipse(zone, cx, cy, rx, ry, transform='') -%}
+          <ellipse class="zone-wash" cx="{{ cx }}" cy="{{ cy }}" rx="{{ rx }}" ry="{{ ry }}" fill="{{ zone.visual.fill }}"{% if transform %} transform="{{ transform }}"{% endif %}/>
+          <ellipse class="zone-glow" cx="{{ cx }}" cy="{{ cy }}" rx="{{ rx }}" ry="{{ ry }}" stroke="{{ zone.visual.stroke }}"{% if transform %} transform="{{ transform }}"{% endif %}/>
+          <ellipse class="zone-contour" cx="{{ cx }}" cy="{{ cy }}" rx="{{ rx }}" ry="{{ ry }}" stroke="{{ zone.visual.stroke }}"{% if transform %} transform="{{ transform }}"{% endif %}/>
+          {%- endmacro %}
+
+          {% macro zone_path(zone, d) -%}
+          <path class="zone-glow" d="{{ d }}" stroke="{{ zone.visual.stroke }}"/>
+          <path class="zone-contour" d="{{ d }}" stroke="{{ zone.visual.stroke }}"/>
+          {%- endmacro %}
+
+          {% for zone in map_zones %}
+          <g aria-label="{{ zone.number }} {{ zone.label }}">
+            {% if zone.shape == "forehead" %}
+              {{ zone_ellipse(zone, 150, 84, 66, 20) }}
+            {% elif zone.shape == "glabella" %}
+              {{ zone_ellipse(zone, 150, 132, 10, 20) }}
+            {% elif zone.shape == "eyes" %}
+              {{ zone_ellipse(zone, 116, 148, 26, 10, "rotate(-2 116 148)") }}
+              {{ zone_ellipse(zone, 184, 148, 26, 10, "rotate(2 184 148)") }}
+            {% elif zone.shape == "puffiness" %}
+              {{ zone_ellipse(zone, 116, 168, 28, 10, "rotate(-4 116 168)") }}
+              {{ zone_ellipse(zone, 184, 168, 28, 10, "rotate(4 184 168)") }}
+            {% elif zone.shape == "nasolabial" %}
+              {{ zone_path(zone, "M130 180 C120 202 118 228 126 248") }}
+              {{ zone_path(zone, "M170 180 C180 202 182 228 174 248") }}
+            {% elif zone.shape == "cheeks" %}
+              {{ zone_ellipse(zone, 108, 195, 36, 18, "rotate(-14 108 195)") }}
+              {{ zone_ellipse(zone, 192, 195, 36, 18, "rotate(14 192 195)") }}
+            {% elif zone.shape == "mouth" %}
+              {{ zone_ellipse(zone, 150, 224, 44, 15) }}
+            {% elif zone.shape == "jawline" %}
+              {{ zone_path(zone, "M76 205 C88 250 116 282 150 290 C184 282 212 250 224 205") }}
+            {% elif zone.shape == "chin" %}
+              {{ zone_ellipse(zone, 150, 260, 34, 14) }}
+            {% elif zone.shape == "neck" %}
+              {{ zone_path(zone, "M118 282 C112 326 106 366 102 400") }}
+              {{ zone_path(zone, "M182 282 C188 326 194 366 198 400") }}
+            {% endif %}
+
+            <g><circle class="zone-num-bg" cx="{{ zone.num_x }}" cy="{{ zone.num_y }}" r="9"/>
+               <text class="zone-num" x="{{ zone.num_x }}" y="{{ zone.num_y + 4 }}" text-anchor="middle">{{ zone.number }}</text></g>
+          </g>
+          {% endfor %}
+          </svg>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="dot good"></span>Всё хорошо</div>
+          <div class="legend-item"><span class="dot attention"></span>Зона внимания</div>
+          <div class="legend-item"><span class="dot priority"></span>Приоритет</div>
+        </div>
+
+        <div class="zones-list">
+          {% for zone in zones %}
+          <div><span class="n">{{ zone.number }}</span>{{ zone.label }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card benefits-card">
+        <div class="section-num">07</div>
+        <div class="section-title">Что даст фейс-фитнес</div>
+        <ul>
+          {% for bullet in benefits %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        {% if benefits_outro %}
+        <p class="benefits-outro">{{ benefits_outro }}</p>
+        {% endif %}
+      </div>
+
+      <div class="card forecast-card">
+        <div class="section-num">08</div>
+        <div class="section-title">Прогноз по времени</div>
+        <ul>
+          {% for bullet in forecast %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col">
+      <div class="card aging-card">
+        <div class="section-num">03</div>
+        <div class="section-title">Тип лица и тип старения</div>
+        <p class="kv-line"><b>Тип лица:</b> {{ face_type }}</p>
+        <p class="kv-line"><b>Тип старения:</b> {{ aging_type }}</p>
+        <div class="mini-heading">Прогноз:</div>
+        <ul class="compact-list">
+          {% for bullet in aging_forecast %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        {% if aging_strong_base %}
+        <p class="strong-base">{{ aging_strong_base }}</p>
+        {% endif %}
+      </div>
+
+      <div class="card why-card">
+        <div class="section-num">05</div>
+        <div class="section-title">Почему это происходит</div>
+        {% if why_intro %}
+        <p class="why-lead">{{ why_intro }}</p>
+        {% endif %}
+        <div class="mini-heading">Однако:</div>
+        <ul class="compact-list">
+          {% for bullet in causes %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        {% if why_outro %}
+        <p class="why-outro">{{ why_outro }}</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
+
+  <!-- GROWTH ZONES -->
+  <section class="growth">
+    <div class="section-num">09</div>
+    <div class="section-title">Зоны роста</div>
+    <div class="pills">
+      {% for zone in growth_zones %}
+      <span class="pill {{ zone.pill_class }}">{{ zone.label }}</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="final">
+    <div class="lead">
+      <span class="label">Итог</span>
+      {{ final_summary }}
+    </div>
+    <div class="quote">
+      «Ваша красота —<br/>
+      в балансе<br/>
+      и&nbsp;внимании к&nbsp;себе.»
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    {{ disclaimer }}
+  </div>
+
+</div>
+
+</body>
+</html>

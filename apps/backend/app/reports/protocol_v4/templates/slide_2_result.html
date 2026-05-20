@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    <main class="slide">
+      <header class="topbar">
+        <div>
+          <div class="brand-small">Bella Vladi</div>
+          <div class="screen-title">Personal Result</div>
+        </div>
+        <div class="screen-meta">
+          <div>{{ user_name }} · {{ date }}</div>
+          <div class="scan-badge">короткие инсайты</div>
+        </div>
+      </header>
+
+      <section class="content">
+        <article class="result-hero">
+          <div class="kicker">Главный вывод</div>
+          <div class="main-conclusion">{{ copy.summary.aging_type }}</div>
+        </article>
+
+        <div class="insight-stack">
+          <article class="insight-row">
+            <div class="insight-title">Кожа</div>
+            <div class="insight-text">{{ copy.summary.skin_type }}</div>
+          </article>
+          <article class="insight-row">
+            <div class="insight-title">Визуальный тонус</div>
+            <div class="insight-text">{{ copy.summary.skin_age }}</div>
+          </article>
+          <article class="insight-row">
+            <div class="insight-title">Сильные стороны</div>
+            <div class="insight-text">{{ copy.summary.strengths }}</div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

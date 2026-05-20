@@ -1,0 +1,170 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bella_vladi_bot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bella_vladi_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  backend:
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      LOCAL_STORAGE_PATH: /app/storage
+    command: sh -c "alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers $${WEB_CONCURRENCY:-2}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_storage:/app/storage
+
+  worker_analysis:
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      LOCAL_STORAGE_PATH: /app/storage
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    command: sh -c "celery -A app.workers.celery_app worker --loglevel=info -Q analysis --concurrency=$${ANALYSIS_WORKER_CONCURRENCY:-2} --hostname=analysis@%h"
+    depends_on:
+      - backend
+      - redis
+    volumes:
+      - backend_storage:/app/storage
+
+  worker_report:
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      LOCAL_STORAGE_PATH: /app/storage
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    command: sh -c "celery -A app.workers.celery_app worker --loglevel=info -Q report --concurrency=$${REPORT_WORKER_CONCURRENCY:-1} --hostname=report@%h"
+    depends_on:
+      - backend
+      - redis
+    volumes:
+      - backend_storage:/app/storage
+
+  worker_after_photo:
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      LOCAL_STORAGE_PATH: /app/storage
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    command: sh -c "celery -A app.workers.celery_app worker --loglevel=info -Q after_photo --concurrency=$${AFTER_PHOTO_WORKER_CONCURRENCY:-1} --hostname=after-photo@%h"
+    depends_on:
+      - backend
+      - redis
+    volumes:
+      - backend_storage:/app/storage
+
+  worker_telegram:
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      LOCAL_STORAGE_PATH: /app/storage
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    command: sh -c "celery -A app.workers.celery_app worker --loglevel=info -Q telegram --concurrency=$${TELEGRAM_WORKER_CONCURRENCY:-4} --hostname=telegram@%h"
+    depends_on:
+      - backend
+      - redis
+    volumes:
+      - backend_storage:/app/storage
+
+  bot_polling:
+    profiles:
+      - polling
+    build:
+      context: ./apps/backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
+      REDIS_URL: redis://redis:6379/0
+      LOCAL_STORAGE_PATH: /app/storage
+      TELEGRAM_UPDATE_MODE: polling
+    command: python -m app.bot.main
+    depends_on:
+      - backend
+      - redis
+    volumes:
+      - backend_storage:/app/storage
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
+  backend_storage:

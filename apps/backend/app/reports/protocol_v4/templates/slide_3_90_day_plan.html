@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    <main class="slide">
+      <header class="topbar">
+        <div>
+          <div class="brand-small">Bella Vladi</div>
+          <div class="screen-title">90-Day Plan</div>
+        </div>
+        <div class="screen-meta">
+          <div>{{ user_name }} · {{ date }}</div>
+          <div class="scan-badge">реалистичный прогноз</div>
+        </div>
+      </header>
+
+      <section class="timeline">
+        {% set labels = ["7–14 дней", "4–6 недель", "8–12 недель"] %}
+        {% for item in copy.plan.forecast %}
+          <article class="timeline-step">
+            <div class="timeline-number">{{ "%02d"|format(loop.index) }}</div>
+            <div class="timeline-title">{{ labels[loop.index0] }}</div>
+            <div class="timeline-text">{{ item }}</div>
+          </article>
+        {% endfor %}
+      </section>
+
+      <div class="benefit-chips">
+        {% for item in copy.plan.benefits %}
+          <span class="chip">{{ item }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="cta-button">Получить персональную программу Bella Vladi</div>
+    </main>
+  </body>
+</html>

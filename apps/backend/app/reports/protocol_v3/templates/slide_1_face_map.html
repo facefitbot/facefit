@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>{{ css|safe }}</style>
+  </head>
+  <body>
+    <main class="slide slide-face">
+      <header class="header">
+        <div class="brand">Bella Vladi</div>
+        <div class="protocol-title">{{ copy.face_map.title }}</div>
+        <div class="meta">{{ user_name }} · {{ date }}</div>
+        <div class="badge">{{ copy.face_map.subtitle }}</div>
+      </header>
+
+      <section class="face-frame">
+        <img class="face-photo" src="{{ photo_src }}" alt="" />
+        <svg class="face-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <filter id="zoneGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.6" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {% for zone in zones %}
+            {% for shape in zone.shapes %}
+              {% if shape.kind == "ellipse" %}
+                <ellipse class="zone-shape" cx="{{ shape.cx }}" cy="{{ shape.cy }}" rx="{{ shape.rx }}" ry="{{ shape.ry }}" fill="{{ zone.fill }}" stroke="{{ zone.stroke }}" stroke-width="0.55" />
+              {% elif shape.kind == "rect" %}
+                <rect class="zone-shape" x="{{ shape.x }}" y="{{ shape.y }}" width="{{ shape.w }}" height="{{ shape.h }}" rx="{{ shape.rx }}" fill="{{ zone.fill }}" stroke="{{ zone.stroke }}" stroke-width="0.55" {% if shape.rotate %}transform="rotate({{ shape.rotate }} {{ shape.x + shape.w / 2 }} {{ shape.y + shape.h / 2 }})"{% endif %} />
+              {% elif shape.kind == "path" %}
+                <path class="zone-shape" d="{{ shape.d }}" fill="{{ zone.fill }}" stroke="{{ zone.stroke }}" stroke-width="0.55" />
+              {% endif %}
+            {% endfor %}
+            <line class="leader-line" x1="{{ zone.label_x + 7 }}" y1="{{ zone.label_y + 3 }}" x2="{{ zone.line_x }}" y2="{{ zone.line_y }}" />
+          {% endfor %}
+        </svg>
+
+        {% for zone in zones %}
+          <div class="zone-label {{ zone.status_class }}" style="left: {{ zone.label_x }}%; top: {{ zone.label_y }}%;">
+            <span class="zone-number">{{ zone.number }}</span>
+            <span>{{ zone.label }}</span>
+          </div>
+        {% endfor %}
+      </section>
+
+      <section class="face-bottom-panel">
+        <div class="legend">
+          {% for item in legend %}
+            <div class="legend-item"><span class="legend-dot {{ item.class }}"></span>{{ item.name }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="focus-title">Главный фокус</div>
+        <div class="focus-list">
+          {% for item in copy.face_map.main_focus %}
+            <div class="focus-pill">{{ item }}</div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <div class="face-footer">Подробный отчет — по ссылке в боте</div>
+      <div class="watermark">{{ watermark }}</div>
+    </main>
+  </body>
+</html>
