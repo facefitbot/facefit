@@ -1,0 +1,70 @@
+# docker-compose.prod.yml — production overlay.
+#
+# Накладывается поверх базового docker-compose.yml. Базовый остаётся для локалки.
+#
+# Запуск на VM (frontend -> Cloudflare Pages, minio не нужен -> файлы на персистентном диске):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build \
+#     postgres redis backend \
+#     worker_analysis worker_report worker_after_photo worker_telegram
+#
+# Перед первым запуском на VM создать каталоги на персистентном диске:
+#   sudo mkdir -p /mnt/data/postgres /mnt/data/storage
+#
+# Что делает overlay:
+#   - restart: unless-stopped на всех сервисах (авто-подъём после краша / перезагрузки VM)
+#   - mem_limit, чтобы chromium/playwright не съели всю RAM хоста
+#   - переопределяет named-волюмы postgres_data и backend_storage на bind-mount
+#     к персистентному диску /mnt/data (переживает пересоздание VM, снапшотится для бэкапа)
+#
+# Секреты (JWT_SECRET, ADMIN_PASSWORD, TELEGRAM_*, OPENAI_*, ...) берутся из .env на VM.
+
+services:
+  postgres:
+    restart: unless-stopped
+    mem_limit: 1g
+
+  redis:
+    restart: unless-stopped
+    mem_limit: 512m
+
+  backend:
+    restart: unless-stopped
+    mem_limit: 2g
+    environment:
+      STORAGE_DRIVER: local
+      LOCAL_STORAGE_PATH: /app/storage
+      TELEGRAM_UPDATE_MODE: webhook
+
+  worker_analysis:
+    restart: unless-stopped
+    mem_limit: 2g
+
+  worker_report:
+    restart: unless-stopped
+    mem_limit: 1g
+
+  worker_after_photo:
+    restart: unless-stopped
+    mem_limit: 2g
+
+  worker_telegram:
+    restart: unless-stopped
+    mem_limit: 512m
+
+# Переопределяем хранилище named-волюмов на bind-mount к персистентному диску.
+# Сервисы продолжают ссылаться на postgres_data / backend_storage из базового файла,
+# но физически данные теперь лежат на /mnt/data (персистентный диск), а не в /var/lib/docker.
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/data/postgres
+  backend_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/data/storage

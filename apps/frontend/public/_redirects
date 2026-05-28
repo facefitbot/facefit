@@ -1,0 +1,5 @@
+# Cloudflare Pages SPA fallback.
+# Все неизвестные пути отдаём index.html с кодом 200, чтобы React Router
+# сам обработал маршрут (/login, /report/:token, /admin/*).
+# Статические файлы (js/css/png) Cloudflare отдаёт раньше этого правила.
+/*    /index.html   200

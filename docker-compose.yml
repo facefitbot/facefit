@@ -16,7 +16,9 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # Только localhost — Redis не должен торчать в сеть. Локально доступен через
+      # `docker compose exec redis redis-cli`. На VM так же безопасен.
+      - "127.0.0.1:6379:6379"
 
   minio:
     image: minio/minio:latest
