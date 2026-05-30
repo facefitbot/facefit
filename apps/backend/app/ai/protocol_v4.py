@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from app.core.text_utils import format_years, normalize_russian_age_phrases
+
 logger = logging.getLogger(__name__)
 
 
@@ -766,14 +768,16 @@ def sync_visual_age_text(text: Any, visual_age: int) -> str:
     value = re.sub(r"\s+", " ", str(text or "")).strip()
     if not value:
         return ""
-    visual_pattern = r"визуально\s*[—-]\s*(?:на\s+)?\d{1,3}\s*(?:год|года|лет)"
+    value = normalize_russian_age_phrases(value)
+    visual_pattern = r"визуально\s*[—-]\s*(?:на\s+)?\d{1,3}\s*(?:лета|года|год|лет)"
+    visual_replacement = f"Визуально — на {format_years(visual_age)}"
     if re.search(visual_pattern, value, flags=re.IGNORECASE):
-        return re.sub(visual_pattern, f"Визуально — на {visual_age} лет", value, count=1, flags=re.IGNORECASE)
-    replacement = f"на {visual_age} лет"
-    for pattern in (r"на\s+\d{1,3}\s*(?:год|года|лет)", r"примерно\s+\d{1,3}\s*(?:год|года|лет)"):
+        return normalize_russian_age_phrases(re.sub(visual_pattern, visual_replacement, value, count=1, flags=re.IGNORECASE))
+    replacement = f"на {format_years(visual_age)}"
+    for pattern in (r"на\s+\d{1,3}\s*(?:лета|года|год|лет)", r"примерно\s+\d{1,3}\s*(?:лета|года|год|лет)"):
         if re.search(pattern, value, flags=re.IGNORECASE):
-            return re.sub(pattern, replacement, value, count=1, flags=re.IGNORECASE)
-    return value
+            return normalize_russian_age_phrases(re.sub(pattern, replacement, value, count=1, flags=re.IGNORECASE))
+    return normalize_russian_age_phrases(value)
 
 
 def _normalize_for_match(text: Any) -> str:
@@ -2048,7 +2052,7 @@ def _format_skin_visual_age_block(output: dict[str, Any]) -> None:
         body = ""
     body = _cap_first(body) or "Кожа выглядит ухоженной и живой"
     focus = _photo_context_focus(output, "свежесть взгляда")
-    age_line = f"Визуально — на {visual_age} лет ({label})" if visual_age else ""
+    age_line = f"Визуально — на {format_years(visual_age)} ({label})" if visual_age else ""
     text = (
         f"{body}. {age_line}. По фото фокус — {focus}; эти зоны хорошо отвечают на регулярность."
     )
@@ -2868,6 +2872,7 @@ def _clip_text(value: Any, max_chars: int) -> str:
     text = re.sub(r"[ \t\r\f\v]+", " ", str(value or "")).strip()
     text = re.sub(r" *\n *", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    text = normalize_russian_age_phrases(text)
     if len(text) <= max_chars:
         return text
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n{2,}", text) if part.strip()]

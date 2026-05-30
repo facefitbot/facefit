@@ -20,6 +20,7 @@ from app.ai.protocol_v4 import (
     mixed_combo_type_ids_from_payload,
 )
 from app.core.config import settings
+from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
 from app.reports.face_zone_protocol.mediapipe_map import canonical_zone_id, detect_face_zone_geometry
 
 logger = logging.getLogger(__name__)
@@ -156,6 +157,7 @@ def _clean(value: Any, fallback: str = "") -> str:
     text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
     text = re.sub(r"\b[Нн]ормальная кожа\b", "кожа с ровной плотной базой", text)
     text = re.sub(r"\b[Нн]ормаль\w+\b", "комбинированная с ровной плотной базой", text)
+    text = normalize_russian_age_phrases(text)
     return re.sub(r"\s+", " ", text).strip() or fallback
 
 
@@ -165,6 +167,7 @@ def _clean_keep_breaks(value: Any, fallback: str = "") -> str:
     text = re.sub(r"\b[Пп]роблем(а|ы|у|ой|е|ами|ах)?\b", "зона внимания", text)
     text = re.sub(r"\b[Бб]рыли\b", "снижение чёткости овала", text)
     text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
+    text = normalize_russian_age_phrases(text)
     text = re.sub(r"[ \t\r\f\v]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
     text = re.sub(r"\s+(30\s*[–-]\s*35\s*:)", r"\n\n\1", text)
@@ -963,6 +966,12 @@ def build_face_zone_protocol_data(
     strict_final_text = _strict_text(strict_blocks, "final_summary")
     strict_final_quote = _clean(_dict(strict_blocks.get("final_summary")).get("quote"), "")
     final_summary_text = _limit(strict_final_text, 320, "")
+    skin_age_value = _int_value(
+        _dict(strict_blocks.get("skin_visual_age")).get("visual_age") or j_skin_age.get("age_value"),
+        _first_number(skin_age.get("estimated_range") or compact_skin_age.get("range"), 30),
+        low=18,
+        high=80,
+    )
 
     data = {
         "protocol_version": _dict(strict_blocks).get("protocol_version") or "bella_face_protocol_v4",
@@ -986,13 +995,8 @@ def build_face_zone_protocol_data(
         "skin_age": {
             "section_number": "01",
             "title": "Биологический возраст кожи",
-            "age_value": _int_value(
-                _dict(strict_blocks.get("skin_visual_age")).get("visual_age") or j_skin_age.get("age_value"),
-                _first_number(skin_age.get("estimated_range") or compact_skin_age.get("range"), 30),
-                low=18,
-                high=80,
-            ),
-            "age_label": "лет",
+            "age_value": skin_age_value,
+            "age_label": russian_year_word(skin_age_value),
             "score_label": "Состояние кожи",
             "score_value": _int_value(
                 j_skin_age.get("score_value"),
