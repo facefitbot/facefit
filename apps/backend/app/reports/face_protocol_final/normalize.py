@@ -10,6 +10,7 @@ from app.ai.protocol_v4 import (
     build_future_changes_text,
     mixed_combo_type_ids_from_payload,
 )
+from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
 from app.reports.face_protocol_final.schema import DEFAULT_GROWTH_ZONES, DEFAULT_ZONES, EXAMPLE_PROTOCOL_COPY, ProtocolCopy
 
 STATUS_VALUES = {"good", "attention", "priority"}
@@ -30,6 +31,7 @@ ALIASES = {
 def _clean_text(value: Any) -> str:
     text = "" if value is None else str(value)
     text = re.sub(r"[*_`#>]+", "", text)
+    text = normalize_russian_age_phrases(text)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -945,14 +947,7 @@ def _strict_zone_text(zone: dict[str, Any]) -> str:
 
 def _year_word(n: int) -> str:
     """Русское склонение слова «год» для числа n: 1 год, 2 года, 5 лет."""
-    m10, m100 = n % 10, n % 100
-    if 11 <= m100 <= 14:
-        return "лет"
-    if m10 == 1:
-        return "год"
-    if 2 <= m10 <= 4:
-        return "года"
-    return "лет"
+    return russian_year_word(n)
 
 
 def _bio_age_text(user_age: int | None, type_key: str, focus_phrase: str) -> str:
@@ -1241,10 +1236,11 @@ def normalize_protocol_copy(protocol_copy: dict[str, Any] | None) -> dict[str, A
     face_aging = base.get("face_aging") if isinstance(base.get("face_aging"), dict) else {}
 
     zones = _normalize_zones(base.get("zones"))
+    skin_age_value = _shorten_text(skin_age.get("value"), 4, "32")
     normalized = {
         "skin_age": {
-            "value": _shorten_text(skin_age.get("value"), 4, "32"),
-            "unit": _shorten_text(skin_age.get("unit"), 8, "лет"),
+            "value": skin_age_value,
+            "unit": _age_unit_for_value(skin_age_value),
             "comment": _shorten_text(skin_age.get("comment"), 110, EXAMPLE_PROTOCOL_COPY["skin_age"]["comment"]),
             "score": _score_value(skin_age.get("score")),
         },
@@ -1298,6 +1294,11 @@ def normalize_protocol_copy(protocol_copy: dict[str, Any] | None) -> dict[str, A
 def _first_number(text: Any, fallback: str = "32") -> str:
     match = re.search(r"\d{1,3}", _clean_text(text))
     return match.group(0) if match else fallback
+
+
+def _age_unit_for_value(value: Any) -> str:
+    match = re.search(r"\d{1,3}", _clean_text(value))
+    return russian_year_word(int(match.group(0))) if match else "лет"
 
 
 def build_protocol_copy_from_analysis(
@@ -1379,11 +1380,12 @@ def build_protocol_copy_from_analysis(
     if isinstance(analysis.get("strict_blocks"), dict) and analysis.get("strict_blocks"):
         strict_blocks = analysis["strict_blocks"]
 
+    skin_age_value = _first_number(j_skin_age.get("age_value") or skin_age.get("estimated_range"), "32")
     return normalize_protocol_copy(
         {
             "skin_age": {
-                "value": _first_number(j_skin_age.get("age_value") or skin_age.get("estimated_range"), "32"),
-                "unit": "лет",
+                "value": skin_age_value,
+                "unit": _age_unit_for_value(skin_age_value),
                 "comment": j_skin_age.get("description")
                 or j_skin_age.get("main_observation")
                 or skin_age.get("explanation")

@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.ai.prompts import DISCLAIMER
 from app.core.config import settings
+from app.core.text_utils import normalize_russian_age_phrases
 from app.reports.face_protocol_final.normalize import normalize_protocol_copy
 
 logger = logging.getLogger(__name__)
@@ -150,6 +151,7 @@ def _format_protocol_date(value: Any) -> str:
 def _clean_text(value: Any, fallback: str = "") -> str:
     text = "" if value is None else str(value)
     text = re.sub(r"[*_`#>]+", "", text)
+    text = normalize_russian_age_phrases(text)
     return re.sub(r"\s+", " ", text).strip() or fallback
 
 

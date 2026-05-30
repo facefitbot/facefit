@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from app.core.config import AFTER_PHOTO_DISABLED_REASON, after_photo_feature_enabled
+from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
 from app.db.models import (
     AdminUser,
     AnalysisRequest,
@@ -33,6 +34,7 @@ def _clean_text(value: Any, fallback: str = "") -> str:
     text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
     text = re.sub(r"\b[Нн]ормальная кожа\b", "кожа с ровной плотной базой", text)
     text = re.sub(r"\b[Нн]ормаль\w+\b", "комбинированная с ровной плотной базой", text)
+    text = normalize_russian_age_phrases(text)
     text = re.sub(r"\s+", " ", text).strip()
     return text or fallback
 
@@ -181,6 +183,14 @@ def _skin_age_value(skin_age: dict[str, Any], protocol_copy: dict[str, Any]) -> 
     return match.group(0) if match else "32"
 
 
+def _skin_age_unit(value: Any, fallback: Any = "лет") -> str:
+    match = re.search(r"\d{1,3}", _clean_text(value))
+    if match:
+        return russian_year_word(int(match.group(0)))
+    unit = _clean_text(fallback, "лет").lower()
+    return unit if unit in {"год", "года", "лет"} else "лет"
+
+
 def _public_report_cta_url(settings: BotSettings) -> str:
     return settings.whatsapp_url or settings.telegram_url or settings.instagram_url or ""
 
@@ -301,6 +311,7 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         ),
     }
 
+    skin_age_value = _skin_age_value(skin_visual_age, protocol_copy)
     return {
         "token": report.public_token,
         "user": {
@@ -329,8 +340,8 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
             "forecast_short": forecast_items[-1] if forecast_items else "8-12 недель: устойчивее овал.",
         },
         "skin_age": {
-            "value": _skin_age_value(skin_visual_age, protocol_copy),
-            "unit": _clean_text(skin_copy.get("unit"), "лет"),
+            "value": skin_age_value,
+            "unit": _skin_age_unit(skin_age_value, skin_copy.get("unit")),
             "estimated_range": _clean_text(skin_visual_age.get("estimated_range") or skin_copy.get("value"), "визуально свежий диапазон"),
             "score": _clean_text(skin_copy.get("score"), "78/100"),
             "score_percent": _score_percent(skin_copy.get("score")),

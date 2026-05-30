@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.serializers import report_public_dict
 from app.core.config import after_photo_feature_enabled, settings as env_settings
 from app.core.exceptions import not_found
+from app.core.text_utils import normalize_russian_age_phrases
 from app.db.crm import add_lead_event
 from app.db.models import ClientStatus, CtaClickEvent, GeneratedReport, ReportViewEvent
 from app.db.repositories import get_bot_settings
@@ -30,7 +31,7 @@ def _url(path: str | None) -> str:
 
 
 def _e(value: Any) -> str:
-    return escape(str(value or ""))
+    return escape(normalize_russian_age_phrases(value))
 
 
 def _clean_public(value: Any) -> str:
@@ -40,6 +41,7 @@ def _clean_public(value: Any) -> str:
     text = text.replace("Нормальная", "Комбинированная с ровной плотной базой")
     text = text.replace("нормальная", "комбинированная с ровной плотной базой")
     text = text.replace("normal", "комбинированная с ровной плотной базой")
+    text = normalize_russian_age_phrases(text)
     return " ".join(text.split())
 
 
