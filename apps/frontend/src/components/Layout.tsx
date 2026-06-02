@@ -49,7 +49,7 @@ export function Layout() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: () => apiRequest<any>("/api/auth/me") });
   const visibleLinks = links.filter((link) => (roleLevels[me?.role || "owner"] ?? 3) >= roleLevels[link.minRole]);
   return (
-    <div className="min-h-screen bg-milk text-ink">
+    <div className="min-h-screen overflow-x-hidden bg-milk text-ink">
       <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-pearl bg-white/75 p-5 backdrop-blur lg:block">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-card bg-rose text-white">
@@ -80,13 +80,14 @@ export function Layout() {
           })}
         </nav>
       </aside>
-      <main className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-pearl bg-milk/88 px-5 backdrop-blur">
-          <div className="flex items-center gap-2 text-sm font-semibold text-clay">
+      <main className="min-w-0 overflow-x-hidden lg:pl-72">
+        <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-pearl bg-milk/88 px-3 py-3 backdrop-blur sm:px-5">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-clay">
             <Bot size={18} />
-            {me?.name || me?.email || "Production-ready MVP"}
+            <span className="truncate">{me?.name || me?.email || "Production-ready MVP"}</span>
           </div>
           <Button
+            className="shrink-0 px-3 sm:px-4"
             variant="ghost"
             onClick={() => {
               logout();
@@ -97,7 +98,26 @@ export function Layout() {
             Выйти
           </Button>
         </header>
-        <div className="mx-auto max-w-7xl p-5 lg:p-8">
+        <nav className="sticky top-16 z-10 flex gap-2 overflow-x-auto border-b border-pearl bg-milk/92 px-3 py-2 backdrop-blur lg:hidden">
+          {visibleLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `inline-flex h-10 shrink-0 items-center gap-2 rounded-card px-3 text-sm font-semibold transition ${
+                    isActive ? "bg-pearl text-ink" : "text-clay hover:bg-white"
+                  }`
+                }
+              >
+                <Icon size={16} />
+                {link.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+        <div className="mx-auto w-full max-w-7xl min-w-0 p-3 sm:p-5 lg:p-8">
           <Outlet />
         </div>
       </main>

@@ -158,7 +158,7 @@ export function CRM() {
   const selectedCount = selected.length;
   return (
     <div>
-      <SectionTitle title="CRM" subtitle="Вертикальный kanban для менеджеров: лиды, статусы, задачи, заметки и базы" />
+      <SectionTitle title="CRM" subtitle="Канбан по статусам: быстрые смены, ответственные, задачи, заметки и базы" />
       <Card className="mb-5">
         <div className="grid gap-3 xl:grid-cols-[minmax(260px,1.4fr)_repeat(5,minmax(150px,1fr))]">
           <div className="relative">
@@ -227,29 +227,36 @@ export function CRM() {
           </Button>
         </div>
       </Card>
-      {isLoading ? <p className="text-sm text-clay">Загружаю kanban...</p> : null}
-      <div className="space-y-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-clay">
+        <span>{isLoading ? "Загружаю kanban..." : `${allLeads.length} лидов на доске`}</span>
+        <span className="hidden md:inline">{sections.length} статусов · выбрано {selectedCount}</span>
+      </div>
+      <div className="grid gap-4 md:flex md:items-start md:overflow-x-auto md:pb-4">
         {sections.map((section) => (
-          <Card key={section.status} className="p-0">
-            <button type="button" className="flex w-full items-center justify-between border-b border-pearl px-4 py-3 text-left" onClick={() => setCollapsed((current) => ({ ...current, [section.status]: !current[section.status] }))}>
-              <div className="flex items-center gap-3">
-                {collapsed[section.status] ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+          <Card key={section.status} className="overflow-hidden p-0 md:min-w-[318px] md:max-w-[318px] xl:min-w-[340px] xl:max-w-[340px]">
+            <button
+              type="button"
+              className="sticky top-0 z-10 flex w-full items-center justify-between gap-3 border-b border-pearl bg-white/95 px-4 py-3 text-left backdrop-blur"
+              onClick={() => setCollapsed((current) => ({ ...current, [section.status]: !current[section.status] }))}
+            >
+              <div className="min-w-0">
                 <CrmStatusBadge status={section.status} />
-                <span className="text-sm font-semibold text-clay">{section.total} лидов</span>
+                <p className="mt-1 text-xs font-semibold text-clay">{section.total} лидов</p>
               </div>
+              {collapsed[section.status] ? <ChevronDown className="shrink-0 text-clay" size={18} /> : <ChevronUp className="shrink-0 text-clay" size={18} />}
             </button>
             {!collapsed[section.status] ? (
-              <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 p-3 md:max-h-[calc(100vh-318px)] md:overflow-y-auto">
                 {section.items.map((lead) => {
                   const isSelected = selected.includes(lead.id);
                   return (
-                    <article key={lead.id} className={`rounded-card border p-4 transition ${lead.urgency === "high" ? "border-[#c45e5b] bg-[#fff7f6]" : "border-pearl bg-white hover:bg-milk"}`}>
+                    <article key={lead.id} className={`rounded-card border p-3 transition ${lead.urgency === "high" ? "border-[#c45e5b] bg-[#fff7f6]" : "border-pearl bg-white hover:bg-milk"}`}>
                       <div className="flex items-start justify-between gap-3">
                         <label className="mt-1 inline-flex items-center gap-2">
                           <input type="checkbox" checked={isSelected} onChange={() => setSelected((current) => current.includes(lead.id) ? current.filter((id) => id !== lead.id) : [...current, lead.id])} />
                         </label>
                         <button type="button" className="flex-1 text-left" onClick={() => setActiveLeadId(lead.id)}>
-                          <p className="font-bold">{lead.name || lead.telegram_user?.username || "Без имени"}</p>
+                          <p className="truncate font-bold">{lead.name || lead.telegram_user?.username || "Без имени"}</p>
                           <p className="mt-1 text-xs text-clay">@{lead.telegram_user?.username || "—"} · {formatDate(lead.last_activity_at)}</p>
                         </button>
                         {lead.overdue_tasks_count ? <Badge tone="red">срочно</Badge> : lead.cta_clicked ? <Badge tone="yellow">CTA</Badge> : null}
@@ -260,7 +267,7 @@ export function CRM() {
                       <div className="mt-3 flex flex-wrap gap-1">
                         {lead.tags?.map((tag) => <span key={`${tag.id}-${tag.name}`} className="rounded-full px-2 py-1 text-xs font-semibold" style={tagColorStyle(tag.color)}>{tag.name}</span>)}
                       </div>
-                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      <div className="mt-3 grid gap-2">
                         <Select value={lead.status} onChange={(event) => patchLead.mutate({ id: lead.id, payload: { status: event.target.value } })}>
                           {CRM_STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                         </Select>
@@ -269,22 +276,22 @@ export function CRM() {
                           {options.managers.map((item) => <option key={item.id} value={item.id}>{item.name || item.email}</option>)}
                         </Select>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-xs text-clay">
-                        <span>{managerName(lead.assigned_manager)}</span>
+                      <div className="mt-3 grid gap-1 text-xs text-clay">
+                        <span className="truncate">{managerName(lead.assigned_manager)}</span>
                         <span>{lead.tasks_count || 0} задач · {lead.report_opened ? "отчет открыт" : "отчет нет"}</span>
                       </div>
                     </article>
                   );
                 })}
-                {!section.items.length ? <p className="p-3 text-sm text-clay">В этой секции нет лидов</p> : null}
+                {!section.items.length ? <p className="rounded-card border border-dashed border-pearl p-4 text-sm text-clay">В этой секции нет лидов</p> : null}
               </div>
             ) : null}
           </Card>
         ))}
       </div>
       {activeLeadId ? (
-        <div className="fixed inset-0 z-40 bg-ink/35" onClick={() => setActiveLeadId(null)}>
-          <aside className="ml-auto h-full w-full max-w-2xl overflow-y-auto bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-40 overflow-hidden bg-ink/35" onClick={() => setActiveLeadId(null)}>
+          <aside className="ml-auto h-full w-full max-w-2xl overflow-y-auto overscroll-contain bg-white p-4 shadow-2xl sm:p-5" onClick={(event) => event.stopPropagation()}>
             <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-center justify-between border-b border-pearl bg-white px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-clay">Lead Detail</p>

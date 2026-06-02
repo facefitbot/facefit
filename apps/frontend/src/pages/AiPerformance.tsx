@@ -57,7 +57,7 @@ export function AiPerformance() {
         ))}
         {!summary.length ? <Card className="p-4 text-sm text-clay">Логи появятся после первой обработки.</Card> : null}
       </div>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[980px] text-sm">
           <thead className="bg-pearl/60 text-left text-clay">
             <tr>

@@ -27,7 +27,7 @@ export function Campaigns() {
           <Button onClick={() => create.mutate()} disabled={!slug || !title}>Создать</Button>
         </div>
       </Card>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-pearl/60 text-left text-clay">
             <tr><th className="p-4">Кампания</th><th className="p-4">Ссылка</th><th className="p-4">Переходы</th><th className="p-4">Фото</th><th className="p-4">Отчеты</th><th className="p-4">CTA</th><th className="p-4">Конверсия</th></tr>
@@ -50,4 +50,3 @@ export function Campaigns() {
     </div>
   );
 }
-

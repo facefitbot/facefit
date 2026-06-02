@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "WebSearch",
+      "Bash(python3 -m py_compile app/core/config.py app/ai/schemas.py app/ai/protocol_v4.py)",
+      "Bash(python3 -m py_compile app/ai/schemas.py)",
+      "Bash(python3 -m py_compile app/api/serializers.py)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Read(//Users/valtzmanmagnus/.ssh/**)",
+      "Bash(gh secret *)",
+      "Bash(gh run *)",
+      "Bash(git fetch *)",
+      "Bash(git ls-tree *)"
+    ]
+  }
+}
