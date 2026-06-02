@@ -78,7 +78,7 @@ def _canonical_short_phrase(text: Any, *, kind: str, max_chars: int) -> str:
         if "ше" in lower or "ключ" in lower or "осанк" in lower:
             return "Шея может замедлять отток"
         if "лимф" in lower and ("глаз" in lower or "сред" in lower):
-            return "Лимфоотток в зоне глаз"
+            return "Отёчность в зоне глаз"
         if "отеч" in lower or "отёч" in lower or "пастоз" in lower:
             return "Отёчность в средней трети"
         if "межбров" in lower or "гипертонус" in lower:
@@ -310,7 +310,7 @@ def render_slide_3(
     draw_section_block(
         image,
         (72, 716, 1008, 944),
-        title="Прогноз по времени",
+        title="Как лицо может меняться со временем",
         bullets=safe["plan"]["forecast"],
         accent=PALETTE.sand,
     )

@@ -11,6 +11,20 @@ from app.ai.protocol_v4 import (
     mixed_combo_type_ids_from_payload,
 )
 from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
+from app.reports.face_report_copy import (
+    FITNESS_BENEFITS,
+    age_forecast_horizon,
+    clean_report_text,
+    face_change_scenarios,
+    face_change_scenarios_text,
+    fitness_benefits_text,
+    normalize_zone_title,
+    report_status,
+    status_label,
+    zone_recommendation,
+    zone_result_text,
+    zone_visible_text,
+)
 from app.reports.face_protocol_final.schema import DEFAULT_GROWTH_ZONES, DEFAULT_ZONES, EXAMPLE_PROTOCOL_COPY, ProtocolCopy
 
 STATUS_VALUES = {"good", "attention", "priority"}
@@ -29,8 +43,7 @@ ALIASES = {
 
 
 def _clean_text(value: Any) -> str:
-    text = "" if value is None else str(value)
-    text = re.sub(r"[*_`#>]+", "", text)
+    text = clean_report_text(value)
     text = normalize_russian_age_phrases(text)
     return re.sub(r"\s+", " ", text).strip()
 
@@ -108,9 +121,9 @@ def _face_aging_bullets_fallback(aging_type: Any) -> list[str]:
         ]
     if key == "deformation":
         return [
-            "Плотная база есть, но лимфа быстрее утяжеляет нижнюю треть.",
+            "Плотная база есть, но отёчность быстрее утяжеляет нижнюю треть.",
             "Шея влияет на отток и чёткость овала.",
-            "Старт — осанка и лимфодренаж, потом овал.",
+            "Старт — шея, осанка и мягкая работа с овалом.",
         ]
     if key == "wrinkled":
         return [
@@ -122,7 +135,7 @@ def _face_aging_bullets_fallback(aging_type: Any) -> list[str]:
     return [
         "Красивая база есть, но свежесть быстрее уходит через взгляд.",
         "Носослезная и носогубная зоны первыми показывают усталость.",
-        "Старт — микроциркуляция, шея и мягкий тонус.",
+        "Старт — питание тканей, шея и мягкий тонус.",
     ]
 
 
@@ -272,14 +285,7 @@ def _with_sentence_end(text: str, source: str) -> str:
 
 
 def _status(value: Any) -> str:
-    cleaned = _clean_text(value).lower()
-    if cleaned in STATUS_VALUES:
-        return cleaned
-    if cleaned in {"green", "зелёный", "зеленый"}:
-        return "good"
-    if cleaned in {"red", "красный"}:
-        return "priority"
-    return "attention"
+    return report_status(value)
 
 
 def _limited_text_list(items: Any, *, limit: int, max_chars: int, fallback: list[str]) -> list[str]:
@@ -298,14 +304,22 @@ def _limited_text_list(items: Any, *, limit: int, max_chars: int, fallback: list
 def _normalize_zones(items: Any) -> list[dict[str, Any]]:
     source = items if isinstance(items, list) else []
     zones: list[dict[str, Any]] = []
-    for index, raw_zone in enumerate(source[:6], start=1):
+    seen: set[str] = set()
+    for index, raw_zone in enumerate(source, start=1):
+        if len(zones) >= 6:
+            break
         if not isinstance(raw_zone, dict):
             continue
         default = DEFAULT_ZONES[min(index - 1, len(DEFAULT_ZONES) - 1)]
+        label = normalize_zone_title(raw_zone.get("label") or raw_zone.get("name"), default["label"])
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
         zones.append(
             {
-                "number": int(raw_zone.get("number") or index),
-                "label": _shorten_text(raw_zone.get("label") or raw_zone.get("name"), 22, default["label"]),
+                "number": len(zones) + 1,
+                "label": _shorten_text(label, 24, default["label"]),
                 "status": _status(raw_zone.get("status") or raw_zone.get("color")),
             }
         )
@@ -313,8 +327,11 @@ def _normalize_zones(items: Any) -> list[dict[str, Any]]:
     for default_zone in DEFAULT_ZONES:
         if len(zones) >= 6:
             break
-        if not any(zone["label"].lower() == default_zone["label"].lower() for zone in zones):
-            zones.append(default_zone.copy())
+        label = normalize_zone_title(default_zone["label"], default_zone["label"])
+        key = label.lower()
+        if key not in seen:
+            zones.append({"number": len(zones) + 1, "label": label, "status": default_zone["status"]})
+            seen.add(key)
     return zones[:6]
 
 
@@ -334,10 +351,10 @@ def _normalize_growth_zones(items: Any, zones: list[dict[str, Any]]) -> list[dic
         if len(result) >= 5:
             break
         if isinstance(raw_zone, dict):
-            label = _shorten_text(raw_zone.get("label") or raw_zone.get("name"), 22, "Зона")
+            label = _shorten_text(normalize_zone_title(raw_zone.get("label") or raw_zone.get("name"), "Зона лица"), 24, "Зона лица")
             status = _status(raw_zone.get("status") or raw_zone.get("color"))
         else:
-            label = _shorten_text(raw_zone, 22, "Зона")
+            label = _shorten_text(normalize_zone_title(raw_zone, "Зона лица"), 24, "Зона лица")
             status = "attention"
         key = label.lower()
         if key in seen:
@@ -348,9 +365,10 @@ def _normalize_growth_zones(items: Any, zones: list[dict[str, Any]]) -> list[dic
     for fallback in DEFAULT_GROWTH_ZONES:
         if len(result) >= 5:
             break
-        key = fallback["label"].lower()
+        label = normalize_zone_title(fallback["label"], fallback["label"])
+        key = label.lower()
         if key not in seen:
-            result.append(fallback.copy())
+            result.append({"label": label, "status": fallback["status"]})
             seen.add(key)
     return result[:5]
 
@@ -518,7 +536,7 @@ def _aging_forecast_fallback(aging_type: Any) -> list[str]:
         return [
             "Сначала: утренняя припухлость может проходить не полностью.",
             "После 40: ткани тяжелее удерживают чёткость овала.",
-            "Дальше: без лимфодренажа нижняя треть может выглядеть тяжелее.",
+            "Дальше: без мягкой работы с отёчностью нижняя треть может выглядеть тяжелее.",
         ]
     if key == "wrinkled":
         return [
@@ -530,7 +548,7 @@ def _aging_forecast_fallback(aging_type: Any) -> list[str]:
     return [
         "Сначала: лицо свежее утром и сильнее устаёт к вечеру.",
         "Дальше: уголки и носослезная зона могут читаться заметнее.",
-        "Регулярность помогает поддерживать свежесть и микроциркуляцию.",
+        "Регулярность помогает поддерживать свежесть и питание тканей.",
     ]
 
 
@@ -555,13 +573,13 @@ def _why_intro_fallback(analysis: dict[str, Any], insight: dict[str, Any]) -> st
     skin = _skin_type_title(skin_type.get("type")) if skin_type.get("type") else ""
     skin_part = f"Ваш тип кожи — {skin}; " if skin else ""
     if key == "muscular":
-        return skin_part + "мускульный сценарий даёт сильный каркас, но гипертонус может делать выражение строже."
+        return skin_part + "мускульный сценарий даёт сильный каркас, но мышечное напряжение может делать выражение строже."
     if key == "deformation":
-        return skin_part + "деформационно-отечный сценарий проявляется через лимфу, шею и тяжесть нижней трети."
+        return skin_part + "деформационно-отечный сценарий проявляется через отёчность, шею и тяжесть нижней трети."
     if key == "wrinkled":
         return skin_part + "мелкоморщинистый сценарий связан с сухостью, истончением и потерей мягкой опоры кожи."
     # tired_mixed
-    return skin_part + "усталый / смешанный сценарий проявляется через тонус, микроциркуляцию, уголки и носогубную зону."
+    return skin_part + "усталый / смешанный сценарий проявляется через тонус, питание тканей, уголки и носогубную зону."
 
 
 def _why_outro_fallback(aging_type: Any) -> str:
@@ -573,14 +591,14 @@ def _why_outro_fallback(aging_type: Any) -> str:
     if key == "wrinkled":
         return "Этому типу важна дозировка: мягкая стимуляция работает лучше агрессивной нагрузки."
     # tired_mixed
-    return "Здесь важна связка: микроциркуляция, шея и средняя треть, а не отдельное упражнение."
+    return "Здесь важна связка: питание тканей, шея и средняя треть, а не отдельное упражнение."
 
 
 def _morphotype_causes_fallback(aging_type: Any) -> list[str]:
     key = _aging_type_key(aging_type)
     if key == "muscular":
         return [
-            "Лоб и межбровье в гипертонусе — выражение выглядит строже.",
+            "Лоб и межбровье в напряжении — выражение выглядит строже.",
             "Жевательные мышцы могут уплотнять нижнюю треть и усиливать асимметрию.",
             "Носогубная зона может читаться из-за мышечного зажима.",
             "Старт — расслабление зажимов, затем мягкая нагрузка.",
@@ -590,7 +608,7 @@ def _morphotype_causes_fallback(aging_type: Any) -> list[str]:
             "Шея и статика влияют на отток жидкости от лица.",
             "Лишняя жидкость растягивает ткани и утяжеляет контуры.",
             "Нижняя треть первой показывает смещение мягких тканей вниз.",
-            "Старт — осанка и лимфодренаж, затем работа с овалом.",
+            "Старт — осанка и мягкая работа с отёчностью, затем овал.",
         ]
     if key == "wrinkled":
         return [
@@ -604,7 +622,7 @@ def _morphotype_causes_fallback(aging_type: Any) -> list[str]:
         "Снижение тонуса делает уголки и среднюю треть менее собранными.",
         "Микроциркуляция влияет на сияние и свежесть кожи.",
         "Носослезная и носогубная зоны первыми показывают усталость.",
-        "Старт — микроциркуляция и мягкое возвращение тонуса.",
+        "Старт — питание тканей и мягкое возвращение тонуса.",
     ]
 
 
@@ -629,13 +647,13 @@ def _benefits_fallback(aging_type: Any) -> list[str]:
     key = _aging_type_key(aging_type)
     if key == "muscular":
         return [
-            "Сначала снимет гипертонус лба, межбровья и жевательных.",
+            "Сначала снизит напряжение лба, межбровья и жевательной зоны.",
             "Потом вернёт баланс между сильными и ослабленными зонами.",
             "Выражение может стать мягче без потери чёткого каркаса.",
         ]
     if key == "deformation":
         return [
-            "Сначала поддержит лимфодренаж и статику шеи.",
+            "Сначала поддержит лёгкость тканей и статику шеи.",
             "Потом поможет нижней трети выглядеть легче.",
             "Овал и скулы могут читаться собраннее.",
         ]
@@ -647,7 +665,7 @@ def _benefits_fallback(aging_type: Any) -> list[str]:
         ]
     # tired_mixed
     return [
-        "Начнёт с микроциркуляции и общего тонуса.",
+        "Начнёт с питания тканей и общего тонуса.",
         "Поддержит уголки, носослезную и носогубную зоны.",
         "Поможет лицу выглядеть более отдохнувшим даже к вечеру.",
     ]
@@ -674,9 +692,9 @@ def _aging_mechanics(value: Any) -> tuple[str, str, str]:
         )
     if key == "deformation":
         return (
-            "лимфоток, шею и нижнюю треть",
+            "отёчность, шею и нижнюю треть",
             "глубокие морщины",
-            "начать с шеи и лимфодренажа, а затем подключить овал",
+            "начать с шеи и мягкой работы с отёчностью, а затем подключить овал",
         )
     if key == "wrinkled":
         return (
@@ -696,11 +714,11 @@ def _aging_mechanics(value: Any) -> tuple[str, str, str]:
 _FUTURE_CHANGES: dict[str, str] = {
     "muscular": (
         "Без грамотного ухода межбровье и лоб могут фиксироваться глубже, а жевательные — делать лицо более напряженным. "
-        "Мимические линии со временем становятся статичными, поэтому важно мягко снимать гипертонус."
+        "Мимические линии со временем становятся статичными, поэтому важно мягко снижать напряжение."
     ),
     "deformation": (
         "Без грамотного ухода задержка жидкости может держаться дольше: ткани растягиваются, тяжелеют, под глазами заметнее отечность, "
-        "а овал теряет четкость. Лимфодренаж, шея и осанка помогают вернуть легкость."
+        "а овал теряет четкость. Шея, осанка и мягкая работа с отёчностью помогают вернуть легкость."
     ),
     "wrinkled": (
         "Без грамотного ухода сухость, тонкость кожи и мелкая сетка могут проявляться ярче. "
@@ -708,7 +726,7 @@ _FUTURE_CHANGES: dict[str, str] = {
     ),
     "tired_mixed": (
         "Без грамотного ухода лицо может быстрее уставать к вечеру: заметнее становятся зона глаз, носослезная борозда, "
-        "носогубные складки и уголки рта. Микроциркуляция, мягкий тонус и лимфодренаж возвращают свежесть."
+        "носогубные складки и уголки рта. Питание тканей, мягкий тонус и работа с отёчностью возвращают свежесть."
     ),
 }
 
@@ -717,7 +735,7 @@ _AGE_CHANGES_STAGES: dict[str, list[tuple[str, str]]] = {
     "muscular": [
         ("25–30 лет", "начинают проявляться мимические линии лба и межбровья"),
         ("30–35 лет", "вертикальные заломы в межбровье могут становиться глубже"),
-        ("35–40 лет", "гипертонус жевательных делает нижнюю часть визуально тяжелее"),
+        ("35–40 лет", "напряжение жевательной зоны делает нижнюю часть визуально тяжелее"),
         ("после 40", "мимические морщины легче переходят в статичные борозды"),
     ],
     "deformation": [
@@ -735,7 +753,7 @@ _AGE_CHANGES_STAGES: dict[str, list[tuple[str, str]]] = {
     "tired_mixed": [
         ("25–30 лет", "лицо может выглядеть свежим утром, но уставать к вечеру"),
         ("30–35 лет", "заметнее становятся носослезная зона, носогубка и уголки рта"),
-        ("35–40 лет", "пастозность и дефицит объемов сильнее дают невыспавшийся вид"),
+        ("35–40 лет", "лёгкая припухлость и дефицит объёмов сильнее дают невыспавшийся вид"),
         ("после 40", "сочетание признаков требует комплексной поддержки"),
     ],
 }
@@ -781,21 +799,21 @@ def _age_changes_text(type_key: str, user_age: int | None) -> str:
 
 _BENEFITS: dict[str, str] = {
     "muscular": (
-        "Фейс-фитнес именно для вас — это не «качать лицо», а вернуть мягкость сильной мышечной базе. "
+        "Фейсфитнес именно для вас — это не «качать лицо», а вернуть мягкость сильной мышечной базе. "
         "Когда расслабятся межбровье, лоб и жевательные, взгляд станет спокойнее, черты мягче, "
         "а четкий овал будет выглядеть еще благороднее."
     ),
     "deformation": (
-        "Фейс-фитнес для вас начнет работать через шею, осанку и лимфодренаж. Когда улучшится отток, "
+        "Фейсфитнес для вас начнет работать через шею, осанку и уменьшение отёчности. Когда лицо становится легче, "
         "зона глаз выглядит легче, нижняя треть меньше утяжеляет лицо, а природные скулы и овал становятся заметнее."
     ),
     "wrinkled": (
-        "Фейс-фитнес для вашего типа — это мягкое питание тканей изнутри: микроциркуляция, бережный тонус и увлажнение. "
+        "Фейсфитнес для вашего типа — это мягкое питание тканей изнутри: бережный тонус и увлажнение. "
         "Лицо может выглядеть более живым, кожа — спокойнее и свежее, а изящный контур сохранит свою природную красоту."
     ),
     "tired_mixed": (
-        "Фейс-фитнес для вас — способ вернуть лицу отдохнувшее выражение без изменения черт. "
-        "Работа с шеей, лимфотоком и мягким тонусом освежает взгляд, смягчает носогубную зону "
+        "Фейсфитнес для вас — способ вернуть лицу отдохнувшее выражение без изменения черт. "
+        "Работа с шеей, отёчностью и мягким тонусом освежает взгляд, смягчает носогубную зону "
         "и помогает уголкам рта выглядеть легче."
     ),
 }
@@ -809,7 +827,7 @@ _TIME_FORECAST: dict[str, list[str]] = {
     "deformation": [
         "Через 2 недели — визуально меньше утренней отёчности, лицо более собранное с утра.",
         "Через 3–4 недели — мягче носогубная зона, лицо более открытое и свежее.",
-        "Через 6–8 недель — устойчивее лимфоток, овал выглядит чётче и собраннее.",
+        "Через 6–8 недель — лицо легче держит свежесть, овал выглядит чётче и собраннее.",
     ],
     "wrinkled": [
         "Через 2 недели — кожа может выглядеть более свежей и увлажнённой, мелкие линии — менее заметны.",
@@ -844,7 +862,7 @@ _FINAL_SUMMARY: dict[str, str] = {
 
 _AGING_TYPE_TAIL: dict[str, str] = {
     "muscular": "Лицо с {shape} хорошо держит форму, но свежесть быстрее всего меняется через взгляд и лобно-межбровную зону.",
-    "deformation": "Лицо с {shape} хорошо держит черты, но свежесть быстрее всего меняется через лимфоток, шею и нижнюю треть.",
+    "deformation": "Лицо с {shape} хорошо держит черты, но свежесть быстрее всего меняется через отёчность, шею и нижнюю треть.",
     "wrinkled": "Лицо с {shape} долго сохраняет контур, но свежесть быстрее всего меняется через текстуру кожи и зону глаз.",
     "tired_mixed": "Лицо с {shape} хорошо сохраняет мягкость черт, но свежесть быстрее меняется через взгляд, носогубную зону и нижнюю треть.",
 }
@@ -924,25 +942,12 @@ def _skin_plus(type_title: str) -> tuple[str, str, str]:
 
 
 def _strict_zone_text(zone: dict[str, Any]) -> str:
-    title = _apply_aliases(zone.get("label") or zone.get("name")) or "Зона"
+    title = normalize_zone_title(zone.get("label") or zone.get("name"), "Зона лица")
     status = _status(zone.get("status"))
-    status_label = "сильная зона" if status == "good" else "приоритет" if status == "priority" else "зона внимания"
-    if title.lower() in {"межбровье", "лоб"}:
-        visible = "Зона может делать взгляд строже даже в спокойном лице"
-        action = "Начинать лучше с расслабления, не с активных упражнений"
-    elif "глаз" in title.lower():
-        visible = "Она быстрее всего влияет на ощущение свежести"
-        action = "Начинать лучше с мягкого оттока и расслабления верхней трети"
-    elif "овал" in title.lower() or "ниж" in title.lower():
-        visible = "Она влияет на собранность лица и линию подбородка"
-        action = "Лучше подключать шею, лимфоток и мягкий тонус"
-    elif "носогуб" in title.lower():
-        visible = "Зона зависит от средней трети, оттока и мягкости мимики"
-        action = "Лучше работать через лицо целиком, а не давить в складку"
-    else:
-        visible = "Она влияет на общее ощущение свежести и мягкости лица"
-        action = "Лучше идти через бережный регулярный маршрут"
-    return f"{title} — {status_label}. {visible}. {action}."
+    visible = zone_visible_text(title, status)
+    action = zone_result_text(title, status)
+    recommendation = zone_recommendation(title, status)
+    return f"{title}. Статус: {status_label(status)}. Что видно: {visible} Что даст работа: {action} Рекомендация: {recommendation}"
 
 
 def _year_word(n: int) -> str:
@@ -1113,65 +1118,20 @@ def _strict_blocks_from_analysis(
     )
     kb_aging_text = ai_aging_text if len(ai_aging_text) >= 80 else build_aging_type_text(protocol_type_id, mixed_components)
 
-    # ── БЛОК: Какие изменения будут со временем ──────────────────────────────
-    # Блок 05 — только из базы знаний выбранного типа. Не берем AI/journal copy,
-    # даже если он длинный: так исключаем смешение сценариев старения.
-    ai_future_candidate = _clean_text(
-        j_face_type.get("how_changes_over_time")
-        or j_face_type.get("future_changes")
-        or j_why.get("main_explanation")
-        or j_why.get("description")
-    )
-    ai_future = ai_future_candidate if len(ai_future_candidate) >= 80 else build_future_changes_text(protocol_type_id, mixed_components)
+    # ── БЛОК: Как лицо может меняться со временем ───────────────────────────
+    # Единый сценарный блок для веб-версии и протокола.
+    ai_future = face_change_scenarios_text(all_focus_phrase, user_age)
 
-    # ── БЛОК: Что даст фейс-фитнес ───────────────────────────────────────────
-    # Формат ТЗ: цельный абзац. Если AI прислал длинный conclusion-абзац — берём его.
-    # Иначе собираем плавный текст: вступление + последовательность как живые фразы.
-    seq = j_benefits.get("personal_sequence") or []
-    conclusion = _clean_text(j_benefits.get("conclusion"))
-    if len(conclusion) >= 90:
-        ai_benefits_text = conclusion
-    elif seq and isinstance(seq, list) and any(isinstance(s, dict) for s in seq):
-        intro = "Фейс-фитнес здесь — это мягкая работа с тем, что уже дано природой."
-        sentences: list[str] = [intro]
-        step_lead = ["Сначала", "Затем", "Дальше"]
-        for idx, step in enumerate(seq[:3]):
-            if not isinstance(step, dict):
-                continue
-            focus = _clean_text(step.get("focus") or step.get("why_first"))
-            effect = _clean_text(step.get("expected_effect"))
-            if focus and effect:
-                effect_l = effect[0].lower() + effect[1:]
-                sentences.append(f"{step_lead[min(idx, 2)]} — {focus.rstrip('.')}: {effect_l.rstrip('.')}.")
-            elif effect:
-                sentences.append(f"{effect[0].upper() + effect[1:].rstrip('.')}.")
-        if conclusion and "раскры" not in conclusion.lower():
-            sentences.append(conclusion.rstrip(".") + ".")
-        else:
-            sentences.append("Лицо будет выглядеть живее и отдохнувшим даже без макияжа.")
-        ai_benefits_text = " ".join(sentences)
-    else:
-        ai_benefits_text = _BENEFITS.get(type_key, _BENEFITS["tired_mixed"])
+    # ── БЛОК: Что даст фейсфитнес ────────────────────────────────────────────
+    ai_benefits_text = fitness_benefits_text()
 
-    # ── БЛОК: Прогноз по времени ─────────────────────────────────────────────
-    def _forecast_to_text(item: Any) -> str:
-        """AI may return dicts {period, description} or plain strings."""
-        if isinstance(item, dict):
-            period = _clean_text(item.get("period"))
-            description = _clean_text(item.get("description") or item.get("text"))
-            if period and description:
-                return f"{period} — {description}"
-            return period or description
-        return _clean_text(item)
-
+    # ── БЛОК: Возрастной ориентир ────────────────────────────────────────────
+    horizon = age_forecast_horizon(user_age)
     ai_forecast_items = [
-        text for text in (_forecast_to_text(item) for item in (j_forecast.get("items") or []))
-        if len(text) > 10
+        f"Без регулярной работы — {face_change_scenarios(all_focus_phrase, user_age)[0]['text']}",
+        f"При регулярной работе — {face_change_scenarios(all_focus_phrase, user_age)[1]['text']}",
+        f"Ориентир до {horizon} лет — фейсфитнес может помогать поддерживать свежесть, тонус и более чёткий овал.",
     ]
-    if len(ai_forecast_items) < 3:
-        fallback_forecast = _TIME_FORECAST.get(type_key, _TIME_FORECAST["tired_mixed"])
-        while len(ai_forecast_items) < 3:
-            ai_forecast_items.append(fallback_forecast[len(ai_forecast_items)])
 
     # ── БЛОК: Итог ───────────────────────────────────────────────────────────
     ai_final_text = (
@@ -1204,14 +1164,16 @@ def _strict_blocks_from_analysis(
             "text": ai_future
         },
         "age_changes": {
-            "text": _clean_text(j_age_changes.get("text") or j_age_changes.get("description"))
-            or build_age_changes_text(protocol_type_id, user_age, mixed_components)
+            "text": (
+                "Начать сейчас важно, потому что мягкие изменения легче поддерживать, пока они не стали устойчивыми. "
+                "Регулярная работа помогает дольше сохранять свежий взгляд, тонус и более чёткий овал."
+            )
         },
         "face_fitness_benefits": {
             "text": ai_benefits_text
         },
         "time_forecast": {
-            "intro": "Если вы начнёте заниматься по нашей системе:",
+            "intro": "Возрастной ориентир без обещаний невозможного:",
             "items": ai_forecast_items,
         },
         "growth_zones": {
@@ -1241,7 +1203,7 @@ def normalize_protocol_copy(protocol_copy: dict[str, Any] | None) -> dict[str, A
         "skin_age": {
             "value": skin_age_value,
             "unit": _age_unit_for_value(skin_age_value),
-            "comment": _shorten_text(skin_age.get("comment"), 110, EXAMPLE_PROTOCOL_COPY["skin_age"]["comment"]),
+            "comment": _shorten_text(skin_age.get("comment"), 92, EXAMPLE_PROTOCOL_COPY["skin_age"]["comment"]),
             "score": _score_value(skin_age.get("score")),
         },
         "skin_type": {
@@ -1254,38 +1216,38 @@ def normalize_protocol_copy(protocol_copy: dict[str, Any] | None) -> dict[str, A
                     face_aging.get("face_strengths") or face_aging.get("face_type"),
                     EXAMPLE_PROTOCOL_COPY["face_aging"]["face_strengths"],
                 ),
-                62,
+                54,
                 EXAMPLE_PROTOCOL_COPY["face_aging"]["face_strengths"],
             ),
-            "aging_type": _shorten_text(aging_public_label(face_aging.get("aging_type")), 78, EXAMPLE_PROTOCOL_COPY["face_aging"]["aging_type"]),
+            "aging_type": _shorten_text(aging_public_label(face_aging.get("aging_type")), 68, EXAMPLE_PROTOCOL_COPY["face_aging"]["aging_type"]),
             "bullets": _contentful_bullets(
                 face_aging.get("bullets"),
                 limit=3,
-                max_chars=95,
+                max_chars=76,
                 fallback=_face_aging_bullets_fallback(face_aging.get("aging_type")),
             ),
             "forecast": _limited_text_list(
                 face_aging.get("forecast"),
                 limit=3,
-                max_chars=82,
+                max_chars=68,
                 fallback=_aging_forecast_fallback(face_aging.get("aging_type")),
             ),
             "strong_base": _shorten_text(
                 None if _is_weak_protocol_bullet(face_aging.get("strong_base")) else face_aging.get("strong_base"),
-                110,
+                82,
                 EXAMPLE_PROTOCOL_COPY["face_aging"]["strong_base"],
             ),
         },
         "zones": zones,
-        "causes": _limited_text_list(base.get("causes"), limit=4, max_chars=95, fallback=EXAMPLE_PROTOCOL_COPY["causes"]),
-        "why_intro": _shorten_text(base.get("why_intro"), 180, EXAMPLE_PROTOCOL_COPY["why_intro"]),
-        "why_outro": _shorten_text(base.get("why_outro"), 170, EXAMPLE_PROTOCOL_COPY["why_outro"]),
-        "strengths": _limited_text_list(base.get("strengths"), limit=3, max_chars=75, fallback=EXAMPLE_PROTOCOL_COPY["strengths"]),
-        "benefits": _limited_text_list(base.get("benefits"), limit=3, max_chars=75, fallback=EXAMPLE_PROTOCOL_COPY["benefits"]),
-        "benefits_outro": _shorten_text(base.get("benefits_outro"), 130, EXAMPLE_PROTOCOL_COPY["benefits_outro"]),
-        "forecast": _limited_text_list(base.get("forecast"), limit=3, max_chars=75, fallback=EXAMPLE_PROTOCOL_COPY["forecast"]),
+        "causes": _limited_text_list(base.get("causes"), limit=3, max_chars=76, fallback=EXAMPLE_PROTOCOL_COPY["causes"]),
+        "why_intro": _shorten_text(base.get("why_intro"), 120, EXAMPLE_PROTOCOL_COPY["why_intro"]),
+        "why_outro": _shorten_text(base.get("why_outro"), 120, EXAMPLE_PROTOCOL_COPY["why_outro"]),
+        "strengths": _limited_text_list(base.get("strengths"), limit=3, max_chars=62, fallback=EXAMPLE_PROTOCOL_COPY["strengths"]),
+        "benefits": _limited_text_list(base.get("benefits"), limit=3, max_chars=62, fallback=EXAMPLE_PROTOCOL_COPY["benefits"]),
+        "benefits_outro": _shorten_text(base.get("benefits_outro"), 100, EXAMPLE_PROTOCOL_COPY["benefits_outro"]),
+        "forecast": _limited_text_list(base.get("forecast"), limit=3, max_chars=62, fallback=EXAMPLE_PROTOCOL_COPY["forecast"]),
         "growth_zones": _normalize_growth_zones(base.get("growth_zones"), zones),
-        "final_summary": _shorten_text(base.get("final_summary"), 230, EXAMPLE_PROTOCOL_COPY["final_summary"]),
+        "final_summary": _shorten_text(base.get("final_summary"), 170, EXAMPLE_PROTOCOL_COPY["final_summary"]),
         "strict_blocks": base.get("strict_blocks") if isinstance(base.get("strict_blocks"), dict) else {},
     }
     return ProtocolCopy.model_validate(normalized).model_dump()

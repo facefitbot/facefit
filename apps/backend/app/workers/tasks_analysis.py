@@ -53,6 +53,11 @@ AFTER_PHOTO_TERMINAL_STATUSES = {
 PIPELINE_LOCK_SECONDS = max(900, settings.ai_timeout_seconds * 4)
 
 
+def _report_public_url(token: str) -> str:
+    base_url = (settings.backend_url or settings.public_app_url or settings.frontend_url).rstrip("/")
+    return f"{base_url}/report/{token}" if base_url else f"/report/{token}"
+
+
 def _acquire_pipeline_lock(analysis_id: int) -> tuple[Redis | None, str | None, bool]:
     token = secrets.token_urlsafe(16)
     try:
@@ -361,7 +366,7 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
         if not analysis.original_photo_path:
             raise ValueError("У анализа нет исходного фото")
         if analysis.status == AnalysisStatus.COMPLETED and analysis.report and analysis.face_protocol_image_path:
-            report_url = f"{settings.public_app_url.rstrip('/')}/report/{analysis.report.public_token}"
+            report_url = _report_public_url(analysis.report.public_token)
             if _has_successful_telegram_send(db, analysis.id):
                 log_job(
                     db,
@@ -573,7 +578,7 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
             db.commit()
 
         if not bot_settings.manual_moderation_enabled and analysis.telegram_user:
-            report_url = f"{settings.public_app_url.rstrip('/')}/report/{report.public_token}"
+            report_url = _report_public_url(report.public_token)
             _enqueue_progress_update(analysis.id, "almost_ready")
             if analysis.face_protocol_version != "final_v1":
                 raise RuntimeError("Expected final_v1 face protocol for new analysis")

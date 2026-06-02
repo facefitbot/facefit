@@ -94,7 +94,7 @@ REPORT_TEMPLATE = Template(
     </div>
     <div class="report-card">
       <span class="section-number dark">8</span>
-      <h2>Прогноз по времени</h2>
+      <h2>Как лицо может меняться со временем</h2>
       <div class="timeline">
         <p><b>7-14 дней</b>{{ forecast.first_changes }}</p>
         <p><b>4-6 недель</b>{{ forecast.visible_changes }}</p>
@@ -123,7 +123,7 @@ def build_report_json(user_name: str, analysis_json: dict[str, Any], selected_pr
         "date": datetime.now().strftime("%d.%m.%Y"),
         "summary": analysis_json.get("summary", ""),
         "main_problem": selected_problems[0] if selected_problems else (priority_zones[0] if priority_zones else "Тонус и свежесть лица"),
-        "main_potential": ", ".join(analysis_json.get("strengths", [])[:2]) or "шея и лимфоток как первый рычаг результата",
+        "main_potential": ", ".join(analysis_json.get("strengths", [])[:2]) or "шея и уменьшение отёчности как первый рычаг результата",
         "priority_zones": priority_zones,
         "analysis": analysis_json,
         "extra": extra or {},

@@ -176,13 +176,13 @@ def _brief_text(text: str, limit: int = 120) -> str:
 def _soft_bullet(text: str) -> str:
     lowered = str(text or "").lower()
     if "лимф" in lowered or "отеч" in lowered or "отёч" in lowered:
-        return "Лимфоток требует мягкой активации."
+        return "Отёчность требует мягкой работы."
     if "шея" in lowered or "ключ" in lowered or "осан" in lowered:
         return "Шея и осанка влияют на отток."
     if "гипертонус" in lowered or "мим" in lowered:
-        return "Лёгкий гипертонус усиливает усталость."
+        return "Мышечное напряжение усиливает усталость."
     if "пастоз" in lowered or "сним" in lowered or "сниз" in lowered:
-        return "Снизит утреннюю пастозность."
+        return "Поможет уменьшить утреннюю отёчность."
     if "тонус" in lowered or "век" in lowered or "взгляд" in lowered:
         return "Улучшит тонус и свежесть взгляда."
     if "расслаб" in lowered or "нижн" in lowered:
@@ -683,7 +683,7 @@ def _slide_3(output_path: str, user_name: str, analysis_json: dict[str, Any], ba
     draw.text((596, 466), "Что даст фейсфитнес", font=_font(27, True), fill=INK)
     _list_lines(draw, [_soft_bullet(item) for item in benefits], (598, 532), 340, _font(21), max_items=3)
 
-    _center_text(draw, (88, 780, 992, 826), "08. Прогноз по времени", _font(34, True), fill=INK)
+    _center_text(draw, (88, 780, 992, 826), "08. Как лицо может меняться", _font(34, True), fill=INK)
     timeline_y = 850
     timeline = [
         ("2 недели", forecast.get("first_changes", "Больше свежести и меньше утренней отечности."), ROSE),

@@ -21,6 +21,20 @@ from app.ai.protocol_v4 import (
 )
 from app.core.config import settings
 from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
+from app.reports.face_report_copy import (
+    FITNESS_BENEFITS,
+    clean_report_text,
+    face_change_scenarios_text,
+    fitness_benefits_text,
+    normalize_zone_copy,
+    normalize_zone_title,
+    report_status,
+    status_color,
+    status_label,
+    zone_recommendation,
+    zone_result_text,
+    zone_visible_text,
+)
 from app.reports.face_zone_protocol.mediapipe_map import canonical_zone_id, detect_face_zone_geometry
 
 logger = logging.getLogger(__name__)
@@ -32,7 +46,6 @@ OBJECT_POSITION = "50% 58%"
 STATUS_LABELS = {
     "green": "Всё хорошо",
     "yellow": "Зона внимания",
-    "orange": "Активный фокус",
     "red": "Приоритет",
 }
 
@@ -62,7 +75,7 @@ DEFAULT_ZONES = [
         "description": "Влияет на ощущение свежести взгляда.",
         "what_is_visible": "Зона глаз красивая и выразительная, но быстрее показывает недосып.",
         "why_it_matters": "Именно взгляд первым создаёт впечатление свежего и открытого лица.",
-        "what_to_do": "Работать мягко: лимфодренаж, шея, расслабление верхней трети.",
+        "what_to_do": "Работать мягко: отёчность, шея, расслабление верхней части лица.",
     },
     {
         "id": "nasolabial",
@@ -71,7 +84,7 @@ DEFAULT_ZONES = [
         "description": "Связана с мягкостью средней трети.",
         "what_is_visible": "Носогубная зона может читаться ярче, когда средняя треть тяжелее.",
         "why_it_matters": "Она влияет на мягкость выражения вокруг рта и щёк.",
-        "what_to_do": "Смягчать через лимфоток, расслабление жевательной зоны и работу со средней третью.",
+        "what_to_do": "Смягчать через уменьшение отёчности, расслабление жевательной зоны и работу со средней третью.",
     },
     {
         "id": "mouth_area",
@@ -89,28 +102,28 @@ DEFAULT_ZONES = [
         "description": "Овал — сильная база лица.",
         "what_is_visible": "Овал выглядит ресурсным, а нижней трети нужна регулярная поддержка собранности.",
         "why_it_matters": "Контур лица сильнее всего отвечает за ощущение лифтинга и ухоженности.",
-        "what_to_do": "Начать с шеи и лимфы, затем подключать мягкий тонус овала.",
+        "what_to_do": "Начать с шеи, затем подключать мягкий тонус овала.",
     },
 ]
 
 BEAUTY_ZONE_SPECS = [
     {
         "id": "forehead",
-        "title": "Лоб / зона напряжения",
+        "title": "Лоб и межбровье",
         "match_ids": {"forehead", "brow"},
         "fallback_status": "yellow",
         "description": "Лоб и межбровье показывают, где лицо может собирать напряжение.",
     },
     {
         "id": "eye_area",
-        "title": "Зона под глазами",
+        "title": "Зона глаз",
         "match_ids": {"eye_area"},
         "fallback_status": "yellow",
         "description": "Зона глаз первой влияет на ощущение свежести и отдыха.",
     },
     {
         "id": "cheeks",
-        "title": "Щёки / средняя треть",
+        "title": "Средняя треть",
         "match_ids": {"cheeks"},
         "fallback_status": "yellow",
         "description": "Средняя треть влияет на мягкость лица и глубину носогубной зоны.",
@@ -124,14 +137,14 @@ BEAUTY_ZONE_SPECS = [
     },
     {
         "id": "mouth_area",
-        "title": "Подбородок / около-ротовая зона",
+        "title": "Околоротовая зона",
         "match_ids": {"mouth_area"},
         "fallback_status": "yellow",
         "description": "Около-ротовая зона влияет на мягкость выражения и нижнюю треть.",
     },
     {
         "id": "face_oval",
-        "title": "Овал лица / нижняя треть",
+        "title": "Овал лица",
         "match_ids": {"face_oval", "neck"},
         "fallback_status": "yellow",
         "description": "Овал и нижняя треть отвечают за ощущение собранности лица.",
@@ -150,23 +163,12 @@ EMPTY_MARKERS = {
 
 
 def _clean(value: Any, fallback: str = "") -> str:
-    text = "" if value is None else str(value)
-    text = re.sub(r"[*_`#>]+", "", text)
-    text = re.sub(r"\b[Пп]роблем(а|ы|у|ой|е|ами|ах)?\b", "зона внимания", text)
-    text = re.sub(r"\b[Бб]рыли\b", "снижение чёткости овала", text)
-    text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
-    text = re.sub(r"\b[Нн]ормальная кожа\b", "кожа с ровной плотной базой", text)
-    text = re.sub(r"\b[Нн]ормаль\w+\b", "комбинированная с ровной плотной базой", text)
-    text = normalize_russian_age_phrases(text)
-    return re.sub(r"\s+", " ", text).strip() or fallback
+    return normalize_russian_age_phrases(clean_report_text(value, fallback))
 
 
 def _clean_keep_breaks(value: Any, fallback: str = "") -> str:
     text = "" if value is None else str(value)
-    text = re.sub(r"[*_`#>]+", "", text)
-    text = re.sub(r"\b[Пп]роблем(а|ы|у|ой|е|ами|ах)?\b", "зона внимания", text)
-    text = re.sub(r"\b[Бб]рыли\b", "снижение чёткости овала", text)
-    text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
+    text = clean_report_text(text, fallback)
     text = normalize_russian_age_phrases(text)
     text = re.sub(r"[ \t\r\f\v]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
@@ -303,7 +305,7 @@ def _looks_like_old_copy(value: Any) -> bool:
     text = _clean(value).lower()
     markers = (
         "фейсфитнес для вашего типа — это прежде всего",
-        "фейс-фитнес для вашего типа — это прежде всего раскрытие",
+        "фейсфитнес для вашего типа — это прежде всего раскрытие",
         "система bella vladi помогает идти к этому",
         "вы посмотрите в зеркало",
         "ваша красота — в балансе",
@@ -341,7 +343,7 @@ def _one_paragraph_item(text: str, fallback: str, max_chars: int = 260) -> list[
     return [_clip_words(value, max_chars, fallback)] if value else []
 
 
-def _format_factor_list(items: list[str], fallback: str = "зона глаз, лимфоток и нижняя треть") -> str:
+def _format_factor_list(items: list[str], fallback: str = "зона глаз, шея и нижняя треть") -> str:
     cleaned = [item.strip(" .,:;") for item in items if item and item.strip(" .,:;")]
     if not cleaned:
         return fallback
@@ -558,15 +560,7 @@ def _clip_words(value: Any, max_chars: int, fallback: str) -> str:
 
 
 def _status(value: Any, color: Any = None) -> str:
-    cleaned = _clean(value).lower()
-    color_cleaned = _clean(color).lower()
-    if cleaned in {"good", "green", "всё хорошо", "все хорошо"} or color_cleaned in {"green", "зелёный", "зеленый"}:
-        return "green"
-    if cleaned in {"orange", "active", "активный фокус"} or color_cleaned in {"orange", "оранжевый"}:
-        return "orange"
-    if cleaned in {"priority", "red", "приоритет"} or color_cleaned in {"red", "красный"}:
-        return "red"
-    return "yellow"
+    return status_color(report_status(value, color))
 
 
 def _first_number(value: Any, fallback: int = 30) -> int:
@@ -637,7 +631,7 @@ def _face_aging(analysis_json: dict[str, Any], personal_insight_json: dict[str, 
     return {
         "shape": sanitize_face_features_text(_meaningful(face.get("face_type") or compact_face.get("shape"), "мягкий овал")),
         "aging": aging_public_label(_meaningful(selected_aging or morphotype.get("type") or face.get("aging_type") or compact_aging.get("type"), "tired_mixed")),
-        "explanation": _meaningful(morphotype.get("diagnostic_summary") or face.get("explanation") or analysis_json.get("summary"), "Лицу полезны лимфодренаж, расслабление напряжённых зон и мягкая поддержка тонуса."),
+        "explanation": _meaningful(morphotype.get("diagnostic_summary") or face.get("explanation") or analysis_json.get("summary"), "Лицу полезны мягкая работа с отёчностью, расслабление напряжённых зон и поддержка тонуса."),
     }
 
 
@@ -671,8 +665,7 @@ def _zone_source(analysis_json: dict[str, Any], protocol_copy: dict[str, Any]) -
     for raw in raw_zones:
         if not isinstance(raw, dict):
             continue
-        title = _clean(raw.get("name") or raw.get("label") or raw.get("zone"), "Зона внимания")
-        title = _clean(raw.get("title") or title, "Зона внимания")
+        title = normalize_zone_title(raw.get("title") or raw.get("name") or raw.get("label") or raw.get("zone"), "Зона внимания")
         zone_id = canonical_zone_id(title)
         if _clean(raw.get("id")):
             zone_id = canonical_zone_id(raw.get("id"))
@@ -681,26 +674,22 @@ def _zone_source(analysis_json: dict[str, Any], protocol_copy: dict[str, Any]) -
         if zone_id in seen_ids:
             continue
         seen_ids.add(zone_id)
-        visible = _limit(
-            raw.get("what_is_visible") or raw.get("short_comment") or raw.get("issue") or raw.get("description"),
-            80,
-            "В этой зоне есть мягкий визуальный фокус.",
+        status = _status(raw.get("status") or raw.get("level"), raw.get("color"))
+        zone_copy = normalize_zone_copy(
+            title,
+            status,
+            visible=raw.get("what_is_visible") or raw.get("short_comment") or raw.get("issue") or raw.get("description"),
+            result=raw.get("what_gives") or raw.get("expected_effect") or raw.get("why_it_matters") or raw.get("reason"),
+            recommendation=raw.get("what_to_do") or raw.get("recommended_focus") or raw.get("recommendation"),
         )
-        matters = _limit(
-            raw.get("why_it_matters") or raw.get("reason"),
-            80,
-            "Зона влияет на ощущение свежести, открытости и собранности лица.",
-        )
-        action = _limit(
-            raw.get("what_to_do") or raw.get("recommended_focus") or raw.get("recommendation"),
-            80,
-            "Лучше работать мягко и последовательно: лимфа, шея, затем тонус.",
-        )
+        visible = _limit(zone_copy["visible"], 80, zone_visible_text(title, status))
+        matters = _limit(zone_copy["result"], 80, zone_result_text(title, status))
+        action = _limit(zone_copy["recommendation"], 80, zone_recommendation(title, status))
         zones.append(
             {
                 "id": zone_id,
                 "title": _limit(title, 24, "Зона внимания"),
-                "status": _status(raw.get("status") or raw.get("level"), raw.get("color")),
+                "status": status,
                 "description": visible,
                 "what_is_visible": visible,
                 "why_it_matters": matters,
@@ -755,7 +744,7 @@ def _beauty_zone_map(raw_zones: list[dict[str, Any]], geometry: dict[str, Any]) 
         description = _limit(
             next((zone.get("description") for zone in matched if zone.get("description")), None),
             78,
-            spec["description"],
+            zone_visible_text(spec["title"], status) if matched else spec["description"],
         )
         zone_id = spec["id"]
         zone_geometry = geometry_by_id.get(zone_id) or geometry_by_id.get("overall") or {}
@@ -765,13 +754,18 @@ def _beauty_zone_map(raw_zones: list[dict[str, Any]], geometry: dict[str, Any]) 
                 "number": number,
                 "title": spec["title"],
                 "status": status,
+                "status_label": STATUS_LABELS.get(status, "Зона внимания"),
                 "description": description,
                 "what_is_visible": description,
-                "why_it_matters": description,
+                "why_it_matters": _limit(
+                    next((zone.get("why_it_matters") for zone in matched if zone.get("why_it_matters")), None),
+                    78,
+                    zone_result_text(spec["title"], status),
+                ),
                 "what_to_do": _limit(
                     next((zone.get("what_to_do") for zone in matched if zone.get("what_to_do")), None),
                     78,
-                    "Работать мягко и последовательно, без перегруза зоны.",
+                    zone_recommendation(spec["title"], status),
                 ),
                 "anchor": zone_geometry.get("anchor") or {"x": 50, "y": 50},
                 "shape": zone_geometry.get("shape") or {"type": "ellipse", "x": 50, "y": 50, "width": 32, "height": 16},
@@ -831,7 +825,7 @@ def build_face_zone_protocol_data(
     causes = _list(
         analysis.get("causes"),
         [
-            "Замедленный лимфоток может делать зону глаз и среднюю треть визуально тяжелее.",
+            "Отёчность может делать зону глаз и среднюю треть визуально тяжелее.",
             "Напряжение шеи и жевательной зоны часто влияет на собранность овала.",
             "Недосып и мимическое напряжение быстрее проявляются во взгляде.",
         ],
@@ -875,7 +869,7 @@ def build_face_zone_protocol_data(
     skin_age_description = _limit(_strict_text(strict_blocks, "skin_visual_age"), 280, "")
 
     strict_skin_type_text = _strict_text(strict_blocks, "skin_type")
-    skin_type_description = _limit(strict_skin_type_text, 300, "")
+    skin_type_description = _limit(strict_skin_type_text, 180, "")
     skin_type_items = _strict_bullets(strict_blocks, "skin_type")
 
     strict_aging_text = _strict_text(strict_blocks, "aging_type")
@@ -892,19 +886,26 @@ def build_face_zone_protocol_data(
         }
     ) if selected_type_id == "tired_mixed" else []
     aging_type_display_name = build_aging_type_display_name(selected_type_id, mixed_components)
-    age_changes_text = _limit_keep_breaks(
-        _strict_text_keep_breaks(strict_blocks, "age_changes"),
-        520,
+    future_changes_text = _limit_keep_breaks(
+        face_change_scenarios_text(focus_phrase, client_age),
+        260,
         "",
     )
-    future_changes_text = _limit(_strict_text(strict_blocks, "future_changes"), 520, "")
-    face_scenario = _limit(strict_aging_text, 560, "")
+    age_changes_text = _limit(
+        (
+            f"Главный фокус — {focus_phrase}. Если уменьшить отёчность и снять лишнее напряжение, "
+            "взгляд будет выглядеть свежее, а лицо — более собранным."
+        ),
+        210,
+        "",
+    )
+    face_scenario = _limit(strict_aging_text, 240, "")
     face_first = _list(
         j_face_type.get("what_appears_first"),
         [
             f"{focus_phrase} первыми меняют ощущение свежести",
             "носогубная зона зависит от мягкости средней трети",
-            "овал лучше отвечает после шеи и лимфотока",
+            "овал лучше отвечает после работы с шеей",
         ],
         3,
     )
@@ -919,25 +920,27 @@ def build_face_zone_protocol_data(
 
     strict_strengths_text = _strict_text(strict_blocks, "face_strengths")
     strict_strengths_bullets = _strict_bullets(strict_blocks, "face_strengths")
-    strengths_text_for_render = _limit(strict_strengths_text, 430, "")
+    strengths_text_for_render = _limit(strict_strengths_text, 180, "")
     strengths_items = _one_paragraph_item(strengths_text_for_render, "", 420) or strict_strengths_bullets
-    strengths_compact_bullets: list[str] = _compact_list(strict_strengths_bullets, [], limit=3, max_chars=92)
+    strengths_compact_bullets: list[str] = _compact_list(strict_strengths_bullets, [], limit=3, max_chars=72)
 
-    strict_benefits_text = _strict_text(strict_blocks, "face_fitness_benefits")
-    strict_benefits_bullets = _strict_bullets(strict_blocks, "face_fitness_benefits")
-    benefits_text_for_render = _limit(strict_benefits_text, 430, "")
-    sequence_items = _one_paragraph_item(benefits_text_for_render, "", 420) or strict_benefits_bullets
-    benefits_compact_bullets: list[str] = strict_benefits_bullets
+    benefits_text_for_render = _limit(fitness_benefits_text(), 180, "")
+    sequence_items = FITNESS_BENEFITS[:3]
+    benefits_compact_bullets: list[str] = FITNESS_BENEFITS
 
-    strict_forecast_intro, strict_forecast_items = _strict_time_items(strict_blocks)
-    forecast_items = strict_forecast_items
+    strict_forecast_intro = "При регулярной работе:"
+    forecast_items = [
+        "Свежесть — меньше отёчности и более открытый взгляд.",
+        "Овал — лицо выглядит чётче и собраннее.",
+        "Тонус — общий вид становится более отдохнувшим.",
+    ]
     priorities = j_growth.get("priorities") if isinstance(j_growth.get("priorities"), list) else []
     if not priorities:
         priorities = []
 
     first_step = {
         "title": _meaningful(j_first_step.get("title"), "Ваш первый шаг"),
-        "action": _meaningful(j_first_step.get("action"), "Начните с мягкого лимфодренажа и расслабления шеи утром."),
+        "action": _meaningful(j_first_step.get("action"), "Начните с мягкой работы с отёчностью и расслабления шеи утром."),
         "duration": _meaningful(j_first_step.get("duration"), "3–5 минут"),
         "why_this": _meaningful(j_first_step.get("why_this"), "Это помогает подготовить взгляд, скулы и овал к упражнениям на тонус."),
         "expected_feeling": _meaningful(j_first_step.get("expected_feeling"), "Лицо может ощущаться легче, а взгляд — мягче."),
@@ -965,7 +968,7 @@ def build_face_zone_protocol_data(
 
     strict_final_text = _strict_text(strict_blocks, "final_summary")
     strict_final_quote = _clean(_dict(strict_blocks.get("final_summary")).get("quote"), "")
-    final_summary_text = _limit(strict_final_text, 320, "")
+    final_summary_text = _limit(strict_final_text, 220, "")
     skin_age_value = _int_value(
         _dict(strict_blocks.get("skin_visual_age")).get("visual_age") or j_skin_age.get("age_value"),
         _first_number(skin_age.get("estimated_range") or compact_skin_age.get("range"), 30),
@@ -1005,7 +1008,7 @@ def build_face_zone_protocol_data(
                 high=100,
             ),
             "score_max": 100,
-            "description": skin_age_description,
+            "description": _limit(skin_age_description, 190, ""),
             "passport_age": _dict(strict_blocks.get("skin_visual_age")).get("passport_age") or skin_age.get("passport_age"),
             "age_delta": _dict(strict_blocks.get("skin_visual_age")).get("age_delta") or skin_age.get("age_delta"),
             "age_delta_label": _dict(strict_blocks.get("skin_visual_age")).get("age_delta_label") or skin_age.get("age_delta_label"),
@@ -1017,8 +1020,8 @@ def build_face_zone_protocol_data(
             "section_number": "02",
             "title": "Тип кожи",
             "type_name": skin_type_name,
-            "description": skin_type_description,
-            "features": skin_type_items,
+            "description": _limit(skin_type_description, 180, ""),
+            "features": skin_type_items[:2],
             "strength": _skin_type_strength(j_skin_type.get("strength")),
             "care_focus": _skin_type_care_focus(j_skin_type.get("care_focus")),
             "items": skin_type_items,
@@ -1029,10 +1032,10 @@ def build_face_zone_protocol_data(
             "face_shape": face_shape,
             "aging_type": aging_type_display_name or aging_type,
             "combo_type_ids": mixed_components,
-            "main_scenario": _clip_words(face_scenario, 560, ""),
+            "main_scenario": _clip_words(face_scenario, 240, ""),
             "recommended_start": _limit(face_recommended_start, 78, ""),
             "forecast_title": "Что проявляется первым:",
-            "forecast_items": [_limit(item, 100, "") for item in face_first[:2]],
+            "forecast_items": [_limit(item, 80, "") for item in face_first[:2]],
             "base_note": _limit(face_base_note, 88, ""),
         },
         "zone_map": {
@@ -1049,17 +1052,17 @@ def build_face_zone_protocol_data(
         },
         "why_happens": {
             "section_number": "05",
-            "title": "Какие изменения будут со временем",
+            "title": "Как лицо может меняться со временем",
             "description": _limit(
                 future_changes_text,
-                520,
+                260,
                 "",
             ),
             "subtitle": "Механика:",
             "mechanics": mechanics[:2],
             "items": (
-                _one_paragraph_item(future_changes_text, "", 520)
-                + _one_paragraph_item(age_changes_text, "", 430)
+                _one_paragraph_item(future_changes_text, "", 240)
+                + _one_paragraph_item(age_changes_text, "", 180)
             )
             if future_changes_text
             else [],
@@ -1068,7 +1071,7 @@ def build_face_zone_protocol_data(
         "strengths": {"section_number": "03", "title": _meaningful(j_strengths.get("title"), "Ваши сильные стороны лица"), "items": strengths_items[:3], "compact_bullets": strengths_compact_bullets},
         "face_fitness_benefits": {
             "section_number": "07",
-            "title": _meaningful(j_benefits.get("title"), "Что даст фейс-фитнес"),
+            "title": _meaningful(j_benefits.get("title"), "Что даст фейсфитнес"),
             "text": benefits_text_for_render,
             "personal_sequence": sequence_items[:3],
             "items": sequence_items[:3],
@@ -1077,8 +1080,8 @@ def build_face_zone_protocol_data(
         },
         "time_forecast": {
             "section_number": "08",
-            "title": _meaningful(j_forecast.get("title"), "Прогноз по времени"),
-            "intro": strict_forecast_intro or "Если ты начнёшь заниматься по нашей системе:",
+            "title": "Потенциал",
+            "intro": strict_forecast_intro,
             "items": [_forecast_payload_item(item, index) for index, item in enumerate(forecast_items[:3])],
         },
         "growth_zones": {
@@ -1090,7 +1093,7 @@ def build_face_zone_protocol_data(
         },
         "age_changes": {
             "section_number": "06",
-            "title": _meaningful(j_age_changes.get("title"), "Первые изменения по возрасту"),
+            "title": "Почему важно начать сейчас",
             "text": age_changes_text,
         },
         "first_step": {"section_number": "11", **first_step},
@@ -1101,7 +1104,7 @@ def build_face_zone_protocol_data(
         },
         "final_summary": {
             "label": "Итог",
-            "text": _clip_words(final_summary_text, 260, ""),
+            "text": _clip_words(final_summary_text, 190, ""),
             "main_conclusion": _meaningful(j_final.get("main_conclusion"), ""),
             "main_result_lever": _meaningful(j_final.get("main_result_lever"), ""),
             "start_with": _meaningful(j_final.get("start_with"), ""),
@@ -1227,12 +1230,12 @@ def _compact_future_bullets(aging_type: Any) -> list[str]:
         return [
             "Средняя треть может делать лицо визуально тяжелее.",
             "Овалу со временем нужно больше поддержки.",
-            "Шея и лимфоток помогают сохранить собранность.",
+            "Шея и мягкая работа с отёчностью помогают сохранить собранность.",
         ]
     return [
         "Сначала заметнее считываются взгляд и носогубная зона.",
         "Средняя треть может делать лицо визуально тяжелее.",
-        "Шея и лимфоток помогают сохранить собранный овал.",
+        "Шея и мягкая работа с отёчностью помогают сохранить собранный овал.",
     ]
 
 
@@ -1305,7 +1308,7 @@ def _compact_protocol_payload(data: dict[str, Any]) -> dict[str, Any]:
     growth_items = _list(growth.get("items"), [], 5)
     skin_age_short = _compact_sentence(
         skin_age.get("description"),
-        176,
+        135,
         "",
     )
     if "/" in skin_age_short or skin_age_short.count(",") > 1:
@@ -1317,32 +1320,32 @@ def _compact_protocol_payload(data: dict[str, Any]) -> dict[str, Any]:
         },
         "skin_type": {
             "short_text": _meaningful(skin_type.get("type_name"), ""),
-            "bullets": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=92),
+            "bullets": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=72),
         },
         "face_and_aging_type": {
             "face_strengths": face_shape,
             "aging_type": aging_name,
             "main_focus": main_focus,
-            "bullets": _compact_list(face_type.get("forecast_items"), [], limit=3, max_chars=100),
+            "bullets": _compact_list(face_type.get("forecast_items"), [], limit=3, max_chars=78),
         },
         "future_changes": {
-            "bullets": _compact_list(_dict(data.get("why_happens")).get("items"), [], limit=3, max_chars=100),
+            "bullets": _compact_list(_dict(data.get("why_happens")).get("items"), [], limit=3, max_chars=78),
         },
         "face_strengths": {
             "bullets": _compact_list(
                 strengths.get("compact_bullets") or strengths.get("items"),
                 [],
                 limit=3,
-                max_chars=92,
+                max_chars=72,
             ),
         },
         "face_fitness_benefits": {
-            "short_text": _compact_sentence(benefits_block.get("text"), 120, ""),
+            "short_text": _compact_sentence(benefits_block.get("text"), 96, ""),
             "bullets": _compact_list(
                 benefits_block.get("compact_bullets") or benefits_block.get("items") or benefits_block.get("personal_sequence"),
                 [],
                 limit=3,
-                max_chars=92,
+                max_chars=72,
             ),
         },
         "time_forecast": {
@@ -1380,12 +1383,25 @@ def _v3_template_zones(zone_map: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(zone, dict):
             continue
         anchor = _dict(zone.get("anchor"))
+        title = normalize_zone_title(zone.get("title"), f"Зона {index}")
+        status = _status(zone.get("status"))
+        zone_copy = normalize_zone_copy(
+            title,
+            status,
+            visible=zone.get("what_is_visible") or zone.get("description"),
+            result=zone.get("what_to_do") or zone.get("why_it_matters"),
+        )
+        visible = _limit(zone_copy["visible"], 58, zone_visible_text(title, status))
+        effect = _limit(zone_copy["result"], 58, zone_result_text(title, status))
         result.append(
             {
                 "id": index,
                 "zone_id": zone.get("id") or f"zone_{index}",
-                "name": _clean(zone.get("title"), f"Зона {index}"),
-                "status": _status(zone.get("status")),
+                "name": title,
+                "status": status,
+                "status_label": STATUS_LABELS.get(status, "Зона внимания"),
+                "visible": visible,
+                "effect": effect,
                 "cx": _zone_anchor_value(anchor.get("x", 50), 300),
                 "cy": _zone_anchor_value(anchor.get("y", 50), 385),
                 "shape": zone.get("shape") or {},
@@ -1463,7 +1479,7 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
         "score": skin_age.get("score_value") or 82,
         "description": _limit(
             _full_text("skin_visual_age", compact["skin_visual_age"]["short_text"]),
-            300,
+            190,
             compact["skin_visual_age"]["short_text"],
         ),
     }
@@ -1472,16 +1488,16 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
         "type": alias_skin_type_name,
         "description": _limit(
             skin_type.get("description"),
-            300,
+            180,
             "",
         ),
-        "features": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=92),
+        "features": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=72),
     }
     alias_strengths_text = _limit(
         data.get("strengths_compliment")
         or _dict(compact.get("face_strengths")).get("short_text")
         or " ".join(_dict(compact.get("face_strengths")).get("bullets") or []),
-        430,
+        180,
         "",
     )
     merged["block_03_strengths"] = {
@@ -1490,18 +1506,18 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     }
     merged["block_04_face_aging"] = {
         "aging_type": build_aging_type_display_name(alias_type_id, alias_mixed_components),
-        "description": _limit(_full_text("aging_type"), 560, ""),
+        "description": _limit(_full_text("aging_type"), 240, ""),
         "bullets": compact["face_and_aging_type"]["bullets"],
     }
     merged["zone_map"] = {"zones": _v3_template_zones(zone_map), "contours": zone_map.get("contours") or {}, "quality": zone_map.get("quality") or {}}
     merged["block_05_why"] = {
-        "text": _limit(_full_text("future_changes"), 520, ""),
+        "text": _limit_keep_breaks(why.get("description") or _full_text("future_changes"), 260, ""),
         "reasons": compact["future_changes"]["bullets"],
     }
     age_changes = _dict(data.get("age_changes"))
     merged["block_06_age_changes"] = {
-        "title": _meaningful(age_changes.get("title"), "Первые изменения по возрасту"),
-        "text": _limit_keep_breaks(_full_text("age_changes"), 520, ""),
+        "title": _meaningful(age_changes.get("title"), "Почему важно начать сейчас"),
+        "text": _limit_keep_breaks(age_changes.get("text") or _full_text("age_changes"), 210, ""),
     }
 
     # Backward-compatible aliases for older previews/templates.
@@ -1514,7 +1530,7 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     merged["block_07_facefitness_benefits"] = {
         "text": _limit(
             _meaningful(benefits.get("text"), ""),
-            430,
+            180,
             "",
         ),
         "items": compact["face_fitness_benefits"]["bullets"],
@@ -1528,7 +1544,7 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     }
     merged["growth_areas"] = _v3_growth_areas(data)
     merged["growth_text"] = compact["growth_zones"]["summary"]
-    merged["final_summary"] = _limit(_full_text("final_summary", compact["final_summary"]["text"]), 320, "")
+    merged["final_summary"] = _limit(_full_text("final_summary", compact["final_summary"]["text"]), 220, "")
     merged["tagline"] = compact["final_summary"]["quote"]
     return merged
 

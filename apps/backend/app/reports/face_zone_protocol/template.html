@@ -37,8 +37,8 @@ html { background: var(--bg); }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  font-size: 16px;
-  line-height: 1.48;
+  font-size: 18px;
+  line-height: 1.42;
   -webkit-font-smoothing: antialiased;
   padding: 0;
 }
@@ -117,7 +117,7 @@ body {
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
-  padding: 18px 19px 17px;
+  padding: 16px 17px 15px;
   box-shadow: var(--shadow);
   position: relative;
 }
@@ -145,9 +145,9 @@ body {
 .card li {
   position: relative;
   padding-left: 14px;
-  margin-bottom: 6px;
-  font-size: 15.8px;
-  line-height: 1.42;
+  margin-bottom: 5px;
+  font-size: 17.8px;
+  line-height: 1.34;
   color: var(--ink-soft);
 }
 .card li::before {
@@ -236,28 +236,28 @@ body {
   letter-spacing: 0;
 }
 .bio-desc {
-  font-size: 16.4px;
+  font-size: 18.4px;
   color: var(--ink-soft);
-  line-height: 1.42;
+  line-height: 1.34;
 }
 .passport-age {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 15.5px;
   color: var(--ink-mute);
 }
 .card-text {
-  font-size: 16.6px;
+  font-size: 18.6px;
   color: var(--ink-soft);
-  line-height: 1.47;
+  line-height: 1.36;
   white-space: pre-line;
 }
 .card-text + .card-text { margin-top: 7px; }
 .strengths-compliment {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 17px;
+  font-size: 21px;
   color: var(--ink);
-  line-height: 1.34;
+  line-height: 1.26;
   margin-bottom: 8px;
 }
 
@@ -266,7 +266,7 @@ body {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 600;
-  font-size: 19px;
+  font-size: 21px;
   color: var(--ink);
   margin-bottom: 9px;
   line-height: 1.3;
@@ -276,7 +276,7 @@ body {
 .aging-type {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 24px;
+  font-size: 26px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
@@ -318,7 +318,7 @@ body {
   justify-content: center;
   gap: 7px 10px;
   margin-bottom: 9px;
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--ink-soft);
 }
 .zone-legend .dot {
@@ -334,27 +334,44 @@ body {
 }
 .zone-legend .dot.g::before { background: var(--green); }
 .zone-legend .dot.y::before { background: var(--yellow); }
-.zone-legend .dot.o::before { background: var(--orange); }
 .zone-legend .dot.r::before { background: var(--red); }
 
 .zone-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 12px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 .zone-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13.6px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  padding: 6px 7px 5px;
+  border: 1px solid rgba(180, 160, 130, 0.24);
+  border-radius: 9px;
+  background: rgba(255, 250, 244, 0.62);
+  font-size: 14.6px;
   color: var(--ink-soft);
 }
 .zone-item .zn {
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--accent);
-  min-width: 12px;
+  min-width: 16px;
+}
+.zone-item b {
+  display: block;
+  font-size: 14.9px;
+  line-height: 1.12;
+  color: var(--ink);
+}
+.zone-item small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.8px;
+  line-height: 1.2;
+  color: var(--ink-mute);
 }
 
 /* ═══ 06: AGE CHANGES CARD ═══ */
@@ -374,8 +391,8 @@ body {
 }
 .growth-text,
 .timeline-intro {
-  font-size: 16px;
-  line-height: 1.42;
+  font-size: 18px;
+  line-height: 1.34;
   color: var(--ink-soft);
 }
 .timeline-intro {
@@ -470,7 +487,7 @@ body {
 }
 .final-text {
   font-family: var(--serif);
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.25;
@@ -481,8 +498,8 @@ body {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 600;
-  font-size: 23px;
-  line-height: 1.18;
+  font-size: 25px;
+  line-height: 1.14;
   color: var(--accent);
   text-align: right;
   max-width: 250px;
@@ -502,7 +519,7 @@ body {
 /* ═══ DISCLAIMER ═══ */
 .disclaimer {
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--ink-mute);
   letter-spacing: 0.01em;
   line-height: 1.5;
@@ -565,8 +582,8 @@ body {
       <!-- 06: Age Changes -->
       <div class="card card-age-changes" id="block-06">
         <div class="card-num">06</div>
-        <div class="card-title" id="age-changes-title">Первые изменения по возрасту</div>
-        <div class="card-text" data-slot="age-changes-text">Для вашего типа старения в 30–35 лет обычно глаза и уголки рта быстрее выдают усталость. В 35–40 — свежесть и тонус возвращаются медленнее. Сейчас — лучшее время начать.</div>
+        <div class="card-title" id="age-changes-title">Почему важно начать сейчас</div>
+        <div class="card-text" data-slot="age-changes-text">Главный фокус — зона глаз и верхняя часть лица. Если уменьшить отёчность и снять лишнее напряжение, взгляд будет выглядеть свежее.</div>
       </div>
     </div>
 
@@ -584,7 +601,6 @@ body {
         <div class="zone-legend">
           <span class="dot g">Всё хорошо</span>
           <span class="dot y">Зона внимания</span>
-          <span class="dot o">Активный фокус</span>
           <span class="dot r">Приоритет</span>
         </div>
         <div class="zone-list" data-slot="zone-list">
@@ -595,8 +611,8 @@ body {
       <!-- 05: Why -->
       <div class="card" id="block-05">
         <div class="card-num">05</div>
-        <div class="card-title">Какие изменения будут со временем</div>
-        <div class="card-text" data-slot="why-text">Без грамотного ухода и поддержки именно вашего типа старения зона глаз, носогубка и уголки рта к вечеру могут сильнее выдавать усталость. Микроциркуляция и мягкий тонус возвращают свежесть.</div>
+        <div class="card-title">Как лицо может меняться со временем</div>
+        <div class="card-text" data-slot="why-text">Без регулярной работы отёчность может становиться устойчивее, взгляд — тяжелее, а овал лица — мягче. При регулярной работе можно дольше сохранять свежесть, чёткость черт и тонус.</div>
       </div>
     </div>
 
@@ -613,8 +629,8 @@ body {
       <!-- 07: FF Benefits -->
       <div class="card" id="block-07">
         <div class="card-num">07</div>
-        <div class="card-title">Что даст фейс-фитнес</div>
-        <div class="card-text" data-slot="ff-benefits-text">Фейс-фитнес помогает мягко проявить сильные стороны лица и поддержать главный сценарий.</div>
+        <div class="card-title">Что даст фейсфитнес</div>
+        <div class="card-text" data-slot="ff-benefits-text">Фейсфитнес помогает мягко проявить сильные стороны лица и поддержать главный сценарий.</div>
         <ul data-slot="ff-benefits">
           <li>Взгляд может стать свежее и мягче.</li>
           <li>Скулы — выразительнее, овал — собраннее.</li>
@@ -625,8 +641,8 @@ body {
       <!-- 08: Timeline -->
       <div class="card" id="block-08">
         <div class="card-num">08</div>
-        <div class="card-title">Прогноз по времени</div>
-        <div class="timeline-intro" data-slot="timeline-intro">Если ты начнёшь заниматься по нашей системе:</div>
+        <div class="card-title">Потенциал</div>
+        <div class="timeline-intro" data-slot="timeline-intro">При регулярной работе:</div>
         <ul data-slot="timeline">
           <li>Через 2 недели — взгляд свежее.</li>
           <li>Через 3–4 недели — носогубная зона мягче.</li>
@@ -712,7 +728,7 @@ const protocolData = {
   },
 
   block_05_why: {
-    text: "Без грамотного ухода и поддержки именно вашего типа старения зона глаз, носогубка и уголки рта к вечеру могут сильнее выдавать усталость. Микроциркуляция и мягкий тонус возвращают свежесть.",
+    text: "Без регулярной работы отёчность может становиться устойчивее, взгляд — тяжелее, а овал лица — мягче.\n\nПри регулярной работе можно дольше сохранять свежесть, чёткость черт, тонус и более отдохнувший вид.",
     reasons: [
       "Зона глаз первой показывает усталость и недосып.",
       "Носогубная зона сильнее считывается, когда средней трети не хватает свежести.",
@@ -721,26 +737,26 @@ const protocolData = {
   },
 
   block_07_facefitness_benefits: {
-    text: "Фейс-фитнес для вас — способ вернуть лицу отдохнувшее выражение без изменения черт. Работа с шеей, лимфотоком и мягким тонусом освежает взгляд, смягчает носогубную зону и помогает уголкам рта выглядеть легче.",
+    text: "Фейсфитнес помогает лицу выглядеть свежее, легче и собраннее. При регулярной работе можно уменьшить отёчность, раскрыть взгляд, поддержать овал и мягко замедлять возрастные изменения.",
     items: [
-      "Вернет взгляду больше свежести через мягкую микроциркуляцию.",
-      "Поддержит носогубную зону и уголки рта без перегруза.",
-      "Поможет овалу выглядеть собраннее через шею и отток."
+      "Уменьшить отёчность и сделать лицо визуально легче.",
+      "Сделать взгляд более свежим и открытым.",
+      "Поддержать более чёткий овал лица."
     ]
   },
 
   block_08_timeline: {
-    intro: "Если ты начнёшь заниматься по нашей системе:",
+    intro: "При регулярной работе:",
     items: [
-      "Через 2 недели — взгляд может выглядеть свежее.",
-      "Через 3–4 недели — носогубная зона мягче.",
-      "Через 6–8 недель — овал и тонус устойчивее."
+      "Свежесть — меньше отёчности и более открытый взгляд.",
+      "Овал — лицо выглядит чётче и собраннее.",
+      "Тонус — общий вид становится более отдохнувшим."
     ]
   },
 
   block_06_age_changes: {
-    title: "Первые изменения по возрасту",
-    text: "Для вашего типа старения в 30–35 лет обычно глаза и уголки рта быстрее выдают усталость. В 35–40 — свежесть и тонус возвращаются медленнее. Сейчас — лучшее время начать."
+    title: "Почему важно начать сейчас",
+    text: "Главный фокус — зона глаз и верхняя часть лица. Если уменьшить отёчность и снять лишнее напряжение, взгляд будет выглядеть свежее."
   },
 
   final_summary: "У вас красивое лицо с сильной природной базой. Главное сейчас — раскрыть то, что уже заложено природой, и мягко убрать напряжение, которое скрывает вашу настоящую красоту.",
@@ -929,9 +945,11 @@ function renderZones(zoneMapOrZones) {
   });
 
   // List
-  list.innerHTML = zones.map(z =>
-    `<div class="zone-item"><span class="zn">${z.id}</span> ${esc(z.name)}</div>`
-  ).join('');
+  list.innerHTML = zones.map(z => {
+    const status = z.status_label || ({green: "Всё хорошо", yellow: "Зона внимания", red: "Приоритет"}[z.status] || "Зона внимания");
+    const visible = z.visible || z.description || "";
+    return `<div class="zone-item"><span class="zn">${z.id}</span><div><b>${esc(z.name)}</b><small>${esc(status)}${visible ? ` · ${esc(visible)}` : ""}</small></div></div>`;
+  }).join("");
 }
 
 

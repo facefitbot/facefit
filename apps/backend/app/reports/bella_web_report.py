@@ -20,6 +20,21 @@ from app.ai.protocol_v4 import build_aging_type_display_name, mixed_combo_type_i
 from app.api.serializers import report_view_model
 from app.core.text_utils import format_years, normalize_russian_age_phrases, russian_year_word
 from app.db.models import BotSettings, GeneratedReport
+from app.reports.face_report_copy import (
+    FITNESS_BENEFITS,
+    age_forecast_horizon,
+    clean_report_text,
+    face_change_scenarios,
+    fitness_benefits_text,
+    normalize_zone_copy,
+    normalize_zone_title,
+    report_status,
+    status_color,
+    status_label,
+    zone_recommendation,
+    zone_result_text,
+    zone_visible_text,
+)
 from app.reports.face_zone_protocol.mediapipe_map import detect_face_zone_geometry
 from app.reports.face_zone_protocol.renderer import build_face_zone_protocol_data
 from app.storage.local import local_storage
@@ -72,15 +87,7 @@ WEB_REPORT_FORBIDDEN_PATTERNS: tuple[tuple[str, str], ...] = (
 
 
 def _clean(value: Any, fallback: str = "") -> str:
-    text = "" if value is None else str(value)
-    text = re.sub(r"\b[Пп]роблем(а|ы|у|ой|е|ами|ах)?\b", "зона внимания", text)
-    text = re.sub(r"\b[Бб]рыли\b", "снижение чёткости овала", text)
-    text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
-    text = re.sub(r"\b[Нн]ормальная кожа\b", "кожа с ровной плотной базой", text)
-    text = re.sub(r"\b[Нн]ормаль\w+\b", "комбинированная с ровной плотной базой", text)
-    text = normalize_russian_age_phrases(text)
-    text = text.replace("normal", "комбинированная с ровной плотной базой")
-    text = re.sub(r"\s+", " ", text).strip()
+    text = normalize_russian_age_phrases(clean_report_text(value, fallback))
     if text:
         text = sanitize_face_features_text(text, text)
     return text or (sanitize_face_features_text(fallback, fallback) if fallback else "")
@@ -237,7 +244,7 @@ def _validate_web_report_v5(
     if duplicate_sentences:
         errors.extend(f"duplicate_sentence: {item}" for item in duplicate_sentences[:5])
 
-    if not re.search(r"\b(фейс-фитнес|курс|трениров\w*)\b", combined, flags=re.IGNORECASE):
+    if not re.search(r"\b(фейс[-\s]?фитнес|курс|трениров\w*)\b", combined, flags=re.IGNORECASE):
         errors.append("missing_course_bridge")
     if not re.search(r"\b(моложе|свежее|красивее|сияющ\w*|выразительн\w*)\b", combined, flags=re.IGNORECASE):
         errors.append("missing_beauty_result_language")
@@ -353,8 +360,7 @@ def _anchor(value: Any, fallback: dict[str, int]) -> dict[str, int]:
 def _severity(value: Any, *, result: bool = False) -> str:
     if result:
         return "green"
-    raw = _clean(value).lower()
-    return raw if raw in {"green", "yellow", "orange", "red"} else "yellow"
+    return status_color(report_status(value))
 
 
 def _priority(status: Any, color: Any = None) -> str:
@@ -444,8 +450,8 @@ def _protocol_zone_map(protocol: dict[str, Any]) -> dict[str, Any]:
     raw_zones = zone_map.get("zones") if isinstance(zone_map.get("zones"), list) else []
     zones: list[dict[str, Any]] = []
     for index, raw in enumerate([item for item in raw_zones if isinstance(item, dict)][:6], start=1):
-        title = _clean(raw.get("title") or raw.get("name") or raw.get("label"), f"Зона {index}")
-        status = _severity(raw.get("status") or raw.get("color"))
+        title = normalize_zone_title(raw.get("title") or raw.get("name") or raw.get("label"), f"Зона {index}")
+        status = status_color(report_status(raw.get("status"), raw.get("color")))
         number = raw.get("number") or (raw.get("id") if isinstance(raw.get("id"), int) else index)
         try:
             number = int(number)
@@ -455,6 +461,13 @@ def _protocol_zone_map(protocol: dict[str, Any]) -> dict[str, Any]:
         anchor = raw.get("anchor") if isinstance(raw.get("anchor"), dict) else {}
         cx = raw.get("cx") if raw.get("cx") is not None else anchor.get("x")
         cy = raw.get("cy") if raw.get("cy") is not None else anchor.get("y")
+        zone_copy = normalize_zone_copy(
+            title,
+            status,
+            visible=raw.get("meaning") or raw.get("what_is_visible") or raw.get("description"),
+            result=raw.get("care_priority") or raw.get("what_to_do") or raw.get("recommended_focus") or raw.get("action"),
+            recommendation=raw.get("recommendation"),
+        )
         zones.append(
             {
                 "id": number,
@@ -463,8 +476,9 @@ def _protocol_zone_map(protocol: dict[str, Any]) -> dict[str, Any]:
                 "name": title,
                 "title": title,
                 "status": status,
-                "meaning": _clean(raw.get("meaning") or raw.get("why_it_matters") or raw.get("description") or raw.get("what_is_visible")),
-                "care_priority": _clean(raw.get("care_priority") or raw.get("what_to_do") or raw.get("recommended_focus") or raw.get("action")),
+                "meaning": _clean(zone_copy["visible"], zone_visible_text(title, status)),
+                "care_priority": _clean(zone_copy["result"], zone_result_text(title, status)),
+                "recommendation": _clean(zone_copy["recommendation"], zone_recommendation(title, status)),
                 "cx": cx if cx is not None else 50,
                 "cy": cy if cy is not None else 30 + index * 7,
                 "anchor": anchor or {"x": cx if cx is not None else 50, "y": cy if cy is not None else 30 + index * 7},
@@ -537,7 +551,7 @@ def _looks_like_old_copy(value: Any) -> bool:
     text = _clean(value).lower()
     markers = (
         "фейсфитнес для вашего типа — это прежде всего",
-        "фейс-фитнес для вашего типа — это прежде всего раскрытие",
+        "фейсфитнес для вашего типа — это прежде всего раскрытие",
         "система bella vladi помогает идти к этому",
         "вы посмотрите в зеркало",
         "ваша красота — в балансе",
@@ -568,7 +582,7 @@ def _strict_time_forecast(protocol_copy: dict[str, Any]) -> dict[str, Any]:
         if value:
             items.append({"period": period, "text": value.rstrip(" .") + "."})
     return {
-        "title": "Прогноз по времени",
+        "title": "Возрастной ориентир",
         "basis": _clean(forecast.get("intro"), "Если ты начнёшь заниматься по нашей системе").rstrip(":"),
         "items": items,
     }
@@ -661,26 +675,23 @@ def _first_sentence(text: Any, fallback: str, limit: int = 190) -> str:
 
 def _status_label(status: str) -> str:
     return {
-        "strong": "Сильная зона",
+        "strong": "Всё хорошо",
         "attention": "Зона внимания",
-        "active_focus": "Активный фокус",
         "priority": "Приоритет",
     }.get(status, "Зона внимания")
 
 
 def _zone_status(status: Any) -> str:
-    text = _clean(status).lower()
-    if text in {"green", "good", "strong"}:
+    normalized = report_status(status)
+    if normalized == "good":
         return "strong"
-    if text in {"red", "priority"}:
+    if normalized == "priority":
         return "priority"
-    if text in {"orange", "active_focus"}:
-        return "active_focus"
     return "attention"
 
 
 def _zone_color(status: str) -> str:
-    return {"strong": "green", "attention": "yellow", "active_focus": "orange", "priority": "red"}.get(status, "yellow")
+    return {"strong": "green", "attention": "yellow", "priority": "red"}.get(status, "yellow")
 
 
 def _zone_meaning(title: str, status: str) -> str:
@@ -779,7 +790,7 @@ def _type_specific_web_route(aging_id: str) -> dict[str, Any]:
                 "лицо легче сохраняет мягкость в покое",
             ],
             "steps": [
-                {"stage": "Этап 1", "title": "Отпустить гипертонус", "goal": "смягчить лоб, межбровье и жевательные", "zones": ["лоб", "межбровье", "жевательные"], "possible_effect": "выражение может стать спокойнее"},
+                {"stage": "Этап 1", "title": "Снять напряжение", "goal": "смягчить лоб, межбровье и жевательную зону", "zones": ["лоб", "межбровье", "жевательная зона"], "possible_effect": "выражение может стать спокойнее"},
                 {"stage": "Этап 2", "title": "Раскрыть взгляд", "goal": "снизить лишнюю работу верхней трети", "zones": ["круговая мышца глаза", "лоб"], "possible_effect": "взгляд может выглядеть мягче"},
                 {"stage": "Этап 3", "title": "Вернуть баланс", "goal": "подключить тонус после расслабления", "zones": ["скулы", "овал"], "possible_effect": "черты сохраняют четкость без жесткости"},
                 {"stage": "Этап 4", "title": "Закрепить мягкость", "goal": "сделать расслабление ежедневной привычкой", "zones": ["мимика", "дыхание"], "possible_effect": "лицо легче остается расслабленным"},
@@ -1064,12 +1075,15 @@ def _web_route_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _web_zone_detail(zone: dict[str, Any], aging_name: str, type_focus: str) -> dict[str, Any]:
     title = _clean(zone.get("title"), "Зона лица")
     status = _clean(zone.get("status"), "yellow")
-    meaning = _clean(zone.get("meaning"))
-    care = _clean(zone.get("care_priority"))
-    if not meaning:
-        meaning = _zone_meaning(title, _zone_status(status))
-    if not care:
-        care = _zone_action(title)
+    zone_copy = normalize_zone_copy(
+        title,
+        status,
+        visible=zone.get("meaning"),
+        result=zone.get("care_priority"),
+        recommendation=zone.get("recommendation"),
+    )
+    meaning = _clean(zone_copy["visible"], _zone_meaning(title, _zone_status(status)))
+    care = _clean(zone_copy["result"], _zone_action(title))
     return {
         "number": zone.get("number"),
         "title": title,
@@ -1285,56 +1299,9 @@ def _future_plain_blocks(
     zone_focus: str,
     age_changes: dict[str, Any],
     future: dict[str, Any],
+    passport_age: int | None = None,
 ) -> list[str]:
-    if aging_id == "tired_mixed" and len(mixed_components) >= 2:
-        base = (
-            f"Если ничего не менять, зоны «{zone_focus}» могут постепенно сильнее давать усталый вид. "
-            "Сначала это заметно как вечерняя усталость, потом как более постоянное выражение: взгляд менее свежий, "
-            "носогубная зона заметнее, нижняя треть мягче."
-        )
-        support_line = (
-            "В смешанном типе изменения редко идут по одной линии. Поэтому важно не ждать, когда одна зона станет "
-            "доминировать, а заранее поддерживать свежесть взгляда, мягкость тканей и овал."
-        )
-    else:
-        base = {
-            "muscular": (
-                "Если ничего не менять, межбровье, лоб и жевательная зона могут фиксироваться сильнее. "
-                "Лицо выглядит строже и старше не из-за формы черт, а из-за выражения напряжения, которое остаётся даже в покое."
-            ),
-            "deformation_edema": (
-                "Если ничего не менять, лицо может чаще выглядеть тяжёлым утром, а нижняя треть постепенно теряет чёткость. "
-                "Сначала это выглядит как лёгкая припухлость, позже — как более мягкий овал и менее собранный контур."
-            ),
-            "fine_wrinkle": (
-                "Если ничего не менять, кожа может быстрее терять свежесть и плотность. "
-                "Сухость, мелкая сетка и усталость вокруг глаз становятся заметнее, даже если овал ещё остаётся аккуратным."
-            ),
-            "tired_mixed": (
-                "Если ничего не менять, зона глаз, носогубная зона и уголки рта могут сильнее давать усталый вид. "
-                "Лицо выглядит менее отдохнувшим, особенно к вечеру, а потом это впечатление начинает держаться дольше."
-            ),
-        }.get(aging_id, "")
-        support_line = {
-            "muscular": (
-                "Главный риск — закрепление мимических линий: то, что раньше появлялось только при эмоции, со временем видно и без активной мимики."
-            ),
-            "deformation_edema": (
-                "Главный риск — накопление тяжести в нижней трети: овал становится менее чистым, а лицо хуже возвращается к лёгкости после сна и нагрузки."
-            ),
-            "fine_wrinkle": (
-                "Главный риск — истончение визуального качества кожи: лицо выглядит суше, а мелкие линии сильнее считываются при том же свете."
-            ),
-            "tired_mixed": (
-                "Главный риск — закрепление усталого выражения: взгляд, носогубная зона и уголки рта начинают сильнее влиять на общее впечатление."
-            ),
-        }.get(aging_id, "")
-    return [
-        base,
-        support_line
-        or "Чем раньше начать мягкую регулярную работу, тем проще сохранить свежесть взгляда, чёткость овала и природную гармонию лица.",
-        "Сейчас хорошая точка для старта: задача не «переделать» лицо, а не дать возрастным признакам забрать внимание у ваших сильных сторон.",
-    ]
+    return [f"{item['title']}: {item['text']}" for item in face_change_scenarios(zone_focus, passport_age)]
 
 
 def _zone_plain_details(zone_map: dict[str, Any], aging_id: str) -> list[dict[str, Any]]:
@@ -1342,19 +1309,18 @@ def _zone_plain_details(zone_map: dict[str, Any], aging_id: str) -> list[dict[st
     for zone in zone_map.get("zones", [])[:6]:
         if not isinstance(zone, dict):
             continue
-        title = _clean(zone.get("title"), "Зона лица")
-        status = _clean(zone.get("status"), "yellow")
-        meaning = _web_copy(zone.get("meaning") or _zone_meaning(title, _zone_status(status)))
-        action = _web_copy(zone.get("care_priority") or _zone_action(title))
-        if "лоб" in title.lower():
-            action = f"в зоне «{title.lower()}» выражение становится мягче, а взгляд спокойнее."
-        elif "глаз" in title.lower():
-            action = f"после работы с зоной «{title.lower()}» взгляд выглядит свежее и моложе."
-        elif "щ" in title.lower() or "сред" in title.lower() or "носогуб" in title.lower():
-            action = f"если поддерживать «{title.lower()}», лицо выглядит более собранным и отдохнувшим."
-        elif "овал" in title.lower() or "ниж" in title.lower() or "подбор" in title.lower() or "рот" in title.lower():
-            action = f"при работе с зоной «{title.lower()}» овал выглядит чище, а нижняя часть лица — визуально легче."
-        is_strong = status == "green"
+        title = normalize_zone_title(zone.get("title"), "Зона лица")
+        status = status_color(report_status(zone.get("status")))
+        zone_copy = normalize_zone_copy(
+            title,
+            status,
+            visible=zone.get("meaning"),
+            result=zone.get("care_priority"),
+            recommendation=zone.get("recommendation"),
+        )
+        meaning = _web_copy(zone_copy["visible"] or zone_visible_text(title, status))
+        action = _web_copy(zone_copy["result"] or zone_result_text(title, status))
+        recommendation = _web_copy(zone_copy["recommendation"] or zone_recommendation(title, status))
         items.append(
             {
                 "number": zone.get("number"),
@@ -1362,11 +1328,7 @@ def _zone_plain_details(zone_map: dict[str, Any], aging_id: str) -> list[dict[st
                 "status": status,
                 "status_label": statusLabelFromColor(status),
                 "meaning": meaning,
-                "analysis": (
-                    f"Это сильная зона: «{title.lower()}» можно раскрывать, чтобы лицо выглядело ещё выразительнее."
-                    if is_strong
-                    else f"Это зона внимания: «{title.lower()}» может сильнее влиять на усталый вид лица."
-                ),
+                "analysis": recommendation,
                 "action": action,
                 "anchor": zone.get("anchor") or {"x": 50, "y": 50},
                 "shape": zone.get("shape") or {},
@@ -1385,40 +1347,10 @@ def _fitness_plain_blocks(
 ) -> dict[str, Any]:
     zones = _human_join(priority_zones[:3], "зона глаз и овал")
     text = [
-        f"Фейс-фитнес в вашем случае нужен не для того, чтобы менять лицо. Он нужен, чтобы раскрыть то, что уже красиво: {strong_focus.lower()}.",
-        f"Если регулярно работать с зонами «{zones}», лицо может выглядеть свежее, моложе и более собранно.",
-        "Главная идея: подчеркнуть скулы, раскрыть взгляд, сделать овал чище и вернуть лицу ощущение отдыха.",
+        fitness_benefits_text(),
+        f"Главный фокус для старта — {zones}. Работа с этими зонами помогает раскрыть сильные стороны лица без резких изменений.",
     ]
-    results_by_type = {
-        "muscular": [
-            "взгляд станет мягче за счет расслабления лба и межбровья",
-            "жевательная зона будет меньше утяжелять выражение",
-            "лицо сохранит четкость, но будет выглядеть спокойнее",
-        ],
-        "deformation_edema": [
-            "лицо утром может выглядеть легче и свежее",
-            "нижняя треть станет визуально собраннее",
-            "скулы и овал будут читаться выразительнее",
-        ],
-        "fine_wrinkle": [
-            "кожа будет выглядеть более напитанной и живой",
-            "мелкая сетка визуально смягчится",
-            "лицо будет выглядеть свежее без агрессивной нагрузки",
-        ],
-        "tired_mixed": [
-            "взгляд станет свежее и мягче",
-            "носогубная зона и уголки рта будут выглядеть спокойнее",
-            "лицо будет дольше сохранять отдохнувший вид",
-        ],
-    }
-    if aging_id == "tired_mixed" and len(mixed_components) >= 2:
-        results = [
-            "взгляд будет выглядеть свежее и открытее",
-            "нижняя треть станет визуально легче",
-            "скулы, овал и природные сильные стороны будут заметнее",
-        ]
-    else:
-        results = results_by_type.get(aging_id, results_by_type["tired_mixed"])
+    results = FITNESS_BENEFITS
     steps = [
         {"title": "Раскрыть взгляд", "goal": "сделать лицо более свежим и отдохнувшим", "zones": ["зона глаз", "лоб"], "possible_effect": "взгляд выглядит мягче и моложе"},
         {"title": "Поддержать овал", "goal": "сделать нижнюю часть лица визуально легче", "zones": ["шея", "нижняя треть"], "possible_effect": "контур выглядит собраннее"},
@@ -1432,141 +1364,34 @@ def _forecast_plain_blocks(
     priority_zones: list[str],
     main_focus: str,
     mixed_components: list[str],
+    passport_age: int | None = None,
 ) -> dict[str, Any]:
     focus = _human_join(priority_zones[:3], main_focus)
-    if aging_id == "tired_mixed" and len(mixed_components) >= 2:
-        combo = _combo_scenario_phrase(mixed_components)
-        items = [
-            {
-                "period": "20–30 лет",
-                "text": (
-                    f"При сочетании {combo} чаще первым заметен не возраст, а усталость: зона глаз, тон кожи "
-                    "и выражение лица быстрее меняются к вечеру."
-                ),
-                "how_to_notice": ["усталость под глазами", "менее ровное сияние кожи", f"первые сигналы в зоне «{_zone_focus_at(priority_zones, main_focus, 0)}»"],
-            },
-            {
-                "period": "30–40 лет",
-                "text": (
-                    "Усталость начинает держаться дольше: носогубная зона, уголки рта и нижняя треть сильнее влияют "
-                    "на выражение лица, даже когда вы отдохнули."
-                ),
-                "how_to_notice": ["носогубная зона заметнее", "уголки рта выглядят спокойнее вниз", "овал требует больше поддержки"],
-            },
-            {
-                "period": "40–50 лет",
-                "text": (
-                    "Смешанный сценарий становится более видимым по зонам: где-то проявляется сухость, где-то мягкость тканей, "
-                    "а лицо быстрее теряет эффект свежести."
-                ),
-                "how_to_notice": ["разница между утренним и вечерним лицом", "больше внимания к нижней трети", "зона глаз сильнее задаёт возраст"],
-            },
-            {
-                "period": "50–60 лет",
-                "text": (
-                    "Если не поддерживать лицо, усталое выражение может закрепляться. Регулярная мягкая работа помогает дольше "
-                    "сохранять свежесть, собранность и природную гармонию."
-                ),
-                "how_to_notice": ["свежесть взгляда", "чистота овала", "общая мягкость выражения"],
-            },
-        ]
-    else:
-        items_by_type = {
-            "muscular": [
-                {
-                    "period": "20–30 лет",
-                    "text": "Обычно сильнее заметны мимика лба, межбровье и привычное напряжение лица. Овал при этом часто выглядит чётким.",
-                    "how_to_notice": ["линии появляются при эмоции", "лицо может выглядеть строгим", "жевательная зона быстрее устаёт"],
-                },
-                {
-                    "period": "30–40 лет",
-                    "text": "Напряжение начинает фиксироваться: межбровье и лоб могут быть заметны даже в спокойном выражении.",
-                    "how_to_notice": ["глубже межбровье", "более жёсткое выражение", "взгляд кажется тяжелее"],
-                },
-                {
-                    "period": "40–50 лет",
-                    "text": "Лицо сохраняет форму, но без расслабления может выглядеть тяжелее за счёт зажимов и более резких линий.",
-                    "how_to_notice": ["лоб и верхнее веко требуют внимания", "жевательная зона утяжеляет лицо", "мимика менее мягкая"],
-                },
-                {
-                    "period": "50–60 лет",
-                    "text": "Главный риск — эффект маски напряжения. Мягкая регулярная работа помогает сохранить выразительность без жёсткости.",
-                    "how_to_notice": ["спокойная мимика", "мягкость взгляда", "чёткий, но не тяжёлый овал"],
-                },
-            ],
-            "deformation_edema": [
-                {
-                    "period": "20–30 лет",
-                    "text": "Чаще заметны утренняя припухлость, зона под глазами и зависимость лица от сна, соли и нагрузки.",
-                    "how_to_notice": ["лицо меняется утром и вечером", "глаза выглядят менее свежими", "шея влияет на овал"],
-                },
-                {
-                    "period": "30–40 лет",
-                    "text": "Нижняя треть и овал начинают требовать больше поддержки: лицо может выглядеть мягче и тяжелее, чем раньше.",
-                    "how_to_notice": ["овал менее чёткий", "нижняя треть мягче", "скулы хуже читаются"],
-                },
-                {
-                    "period": "40–50 лет",
-                    "text": "Если не поддерживать шею и ткани, тяжесть нижней трети становится устойчивее, а свежесть лица возвращается медленнее.",
-                    "how_to_notice": ["утренняя тяжесть держится дольше", "контур менее собранный", "зона глаз активнее задаёт возраст"],
-                },
-                {
-                    "period": "50–60 лет",
-                    "text": "Главный риск — потеря чистой линии овала. Регулярная мягкая работа помогает лицу выглядеть легче и собраннее.",
-                    "how_to_notice": ["чистота нижней линии", "лёгкость лица утром", "выразительность скул"],
-                },
-            ],
-            "fine_wrinkle": [
-                {
-                    "period": "20–30 лет",
-                    "text": "Первой обычно проявляется сухость: кожа быстрее просит увлажнения, а зона вокруг глаз тоньше реагирует на усталость.",
-                    "how_to_notice": ["мелкая сетка при сухости", "кожа тускнеет без ухода", "контур ещё хорошо держится"],
-                },
-                {
-                    "period": "30–40 лет",
-                    "text": "Текстура кожи становится главным маркером возраста: мелкие линии и сухость заметнее при том же свете.",
-                    "how_to_notice": ["зона глаз и щёки требуют питания", "тон выглядит менее ровным", "губы и щеки теряют мягкость"],
-                },
-                {
-                    "period": "40–50 лет",
-                    "text": "Без бережной поддержки кожа может выглядеть тоньше, а лицо — более уставшим, даже если овал остаётся аккуратным.",
-                    "how_to_notice": ["сухость сильнее подчёркивает возраст", "скулы выглядят острее", "лицу не хватает мягкости"],
-                },
-                {
-                    "period": "50–60 лет",
-                    "text": "Главный риск — потеря живого, напитанного вида кожи. Мягкая работа помогает поддерживать свежесть без грубой нагрузки.",
-                    "how_to_notice": ["ровность текстуры", "сияние кожи", "мягкость зоны глаз"],
-                },
-            ],
-            "tired_mixed": [
-                {
-                    "period": "20–30 лет",
-                    "text": "Первым обычно заметно, что лицо быстрее устаёт к вечеру: зона глаз и общий тон задают впечатление невыспанности.",
-                    "how_to_notice": ["усталость под глазами", "снижение свежести вечером", "носослёзная зона заметнее"],
-                },
-                {
-                    "period": "30–40 лет",
-                    "text": "Носогубная зона, уголки рта и средняя треть начинают сильнее влиять на выражение лица.",
-                    "how_to_notice": ["носогубная зона заметнее", "уголки рта выглядят ниже", "лицо требует больше восстановления"],
-                },
-                {
-                    "period": "40–50 лет",
-                    "text": "Усталое выражение может становиться более постоянным: лицо выглядит менее собранным, даже после отдыха.",
-                    "how_to_notice": ["зона глаз задаёт возраст", "нижняя треть мягче", "свежесть возвращается медленнее"],
-                },
-                {
-                    "period": "50–60 лет",
-                    "text": "Главная задача — не дать усталому выражению закрепиться. Регулярная мягкая работа помогает сохранить открытый взгляд и спокойный овал.",
-                    "how_to_notice": ["открытость взгляда", "собранность нижней трети", "мягкое выражение лица"],
-                },
-            ],
-        }
-        items = items_by_type.get(aging_id, items_by_type["tired_mixed"])
+    age = passport_age if passport_age and passport_age > 0 else 30
+    horizon = age_forecast_horizon(age)
+    mid = min(horizon, age + max(5, (horizon - age) // 2))
+    items = [
+        {
+            "period": f"Сейчас, {_years_phrase(age)}",
+            "text": f"Главный ориентир — {focus}. Эти зоны уже сейчас лучше всего показывают, насколько лицо выглядит свежим и собранным.",
+            "how_to_notice": ["свежесть взгляда", "лёгкость лица утром", "чёткость овала"],
+        },
+        {
+            "period": f"К {mid} годам",
+            "text": "Без регулярной поддержки отёчность и усталый вид могут держаться дольше. Мягкая работа помогает поддерживать тонус и более отдохнувшее выражение.",
+            "how_to_notice": ["меньше устойчивой отёчности", "взгляд выглядит легче", "черты сохраняют мягкость"],
+        },
+        {
+            "period": f"К {horizon} годам",
+            "text": "Регулярная работа может помогать дольше сохранять свежесть, чёткость черт и спокойный овал без обещаний резкого омоложения.",
+            "how_to_notice": ["поддержанный овал", "более свежий взгляд", "лицо выглядит собраннее"],
+        },
+    ]
     return {
-        "title": "Прогноз по времени с 20 до 60 лет",
+        "title": f"Возрастной ориентир до {horizon} лет",
         "intro": (
-            f"Это не медицинский прогноз, а понятная возрастная логика для вашего типа старения. "
-            f"В фокусе: {focus}. Чем раньше поддерживать эти зоны, тем дольше лицо сохраняет свежесть и природную форму."
+            f"Это мягкий ориентир примерно на 20 лет вперёд. В фокусе: {focus}. "
+            "Чем раньше поддерживать эти зоны, тем проще сохранять свежесть и природную форму лица."
         ),
         "items": items,
         "control": [
@@ -1663,12 +1488,30 @@ def _forecast_control_items(aging_id: str, priority_zones: list[str], main_focus
 
 
 def statusLabelFromColor(color: str) -> str:
-    return {
-        "green": "Сильная зона",
-        "yellow": "Зона внимания",
-        "orange": "Активный фокус",
-        "red": "Приоритет",
-    }.get(_clean(color).lower(), "Зона внимания")
+    return status_label(report_status(color))
+
+
+def _strength_item_title(text: str, index: int) -> str:
+    lowered = text.lower()
+    if "овал" in lowered or "подбород" in lowered:
+        return "Чёткий овал"
+    if "глаз" in lowered or "взгляд" in lowered:
+        return "Выразительный взгляд"
+    if "пропорц" in lowered or "скул" in lowered:
+        return "Пропорции и скулы"
+    defaults = ["Сильная база", "Свежесть лица", "Гармония черт"]
+    return defaults[index % len(defaults)]
+
+
+def _strength_item(raw: Any, index: int) -> dict[str, str]:
+    text = _web_copy(raw)
+    if "—" in text:
+        title, body = text.split("—", 1)
+        return {"title": _web_copy(title), "text": _web_copy(body)}
+    if ":" in text:
+        title, body = text.split(":", 1)
+        return {"title": _web_copy(title), "text": _web_copy(body)}
+    return {"title": _strength_item_title(text, index), "text": text}
 
 
 def _build_detailed_web_sections(
@@ -1704,16 +1547,10 @@ def _build_detailed_web_sections(
     skin_data = _skin_plain_blocks(skin_type_name, skin_type)
     aging_data = _aging_plain_blocks(aging_id, aging_name, mixed_components, kb, priority_zones)
     fitness_data = _fitness_plain_blocks(aging_name, aging_id, mixed_components, strong_focus, priority_zones, benefits)
-    forecast_data = _forecast_plain_blocks(aging_id, priority_zones, main_focus, mixed_components)
+    forecast_data = _forecast_plain_blocks(aging_id, priority_zones, main_focus, mixed_components, passport_age)
     zone_details = _zone_plain_details(zone_map, aging_id)
 
-    strength_items = [
-        {
-            "title": item.split("—", 1)[0].split(":", 1)[0].strip(" ."),
-            "text": _web_copy((item.split("—", 1)[1] if "—" in item else item.split(":", 1)[1] if ":" in item else item).strip(" .")),
-        }
-        for item in _block_bullets(protocol, "face_strengths", 3)
-    ]
+    strength_items = [_strength_item(item, index) for index, item in enumerate(_block_bullets(protocol, "face_strengths", 3))]
     if not strength_items:
         strength_items = [
             {"title": "Форма лица", "text": "у вас гармоничная форма, которую важно не менять, а красиво подчеркнуть"},
@@ -1804,8 +1641,8 @@ def _build_detailed_web_sections(
             "evidence": _list(aging.get("evidence"), priority_zones, 5),
         },
         "future": {
-            "title": "Что будет, если ничего не менять",
-            "text": _future_plain_blocks(aging_id, mixed_components, zone_focus, age_changes, future),
+            "title": "Как лицо может меняться со временем",
+            "text": _future_plain_blocks(aging_id, mixed_components, zone_focus, age_changes, future, passport_age),
         },
         "age_changes": {
             "title": "Почему важно начать сейчас",
@@ -1823,7 +1660,7 @@ def _build_detailed_web_sections(
             "items": zone_details,
         },
         "strategy": {
-            "title": "Что даст фейс-фитнес именно вам",
+            "title": "Что даст фейсфитнес именно вам",
             "text": fitness_data["text"],
             "results": fitness_data["results"],
             "steps": fitness_data["steps"],
@@ -1977,7 +1814,7 @@ def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) 
         "zone_map": zone_map,
         "final_summary": {"text": final_text, "quote": quote},
         "final_cta": {"title": "Ваш персональный разбор готов", "text": final_text, "primary_button": cta_text},
-        "footer": "Это предварительный визуальный AI-разбор по фото. Не медицинское заключение и не замена консультации специалиста.",
+        "footer": "Это предварительный визуальный разбор по фото. Не медицинское заключение и не замена консультации специалиста.",
     }
 
 

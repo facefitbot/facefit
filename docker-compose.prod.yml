@@ -35,6 +35,7 @@ services:
       STORAGE_DRIVER: local
       LOCAL_STORAGE_PATH: /app/storage
       TELEGRAM_UPDATE_MODE: webhook
+      WEB_CONCURRENCY: 1
 
   worker_analysis:
     restart: unless-stopped

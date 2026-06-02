@@ -18,6 +18,16 @@ from app.db.models import (
     TelegramUser,
 )
 from app.storage.local import local_storage
+from app.reports.face_report_copy import (
+    FITNESS_BENEFITS,
+    clean_report_text,
+    face_change_scenarios,
+    fitness_benefits_text,
+    normalize_zone_copy,
+    normalize_zone_title,
+    report_status,
+    status_label,
+)
 
 
 STATUS_LABELS = {
@@ -28,15 +38,38 @@ STATUS_LABELS = {
 
 
 def _clean_text(value: Any, fallback: str = "") -> str:
-    text = "" if value is None else str(value)
-    text = re.sub(r"\b[Пп]роблем(а|ы|у|ой|е|ами|ах)?\b", "зона внимания", text)
-    text = re.sub(r"\b[Бб]рыли\b", "снижение чёткости овала", text)
-    text = re.sub(r"\b[Мм]ешки под глазами\b", "отёчность в зоне глаз", text)
-    text = re.sub(r"\b[Нн]ормальная кожа\b", "кожа с ровной плотной базой", text)
-    text = re.sub(r"\b[Нн]ормаль\w+\b", "комбинированная с ровной плотной базой", text)
-    text = normalize_russian_age_phrases(text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text or fallback
+    return normalize_russian_age_phrases(clean_report_text(value, fallback))
+
+
+def _int_age(value: Any) -> int | None:
+    try:
+        age = int(value)
+    except (TypeError, ValueError):
+        return None
+    return age if 1 <= age <= 110 else None
+
+
+def _client_age_from_report(analysis: AnalysisRequest | None, generated_report: dict[str, Any]) -> int | None:
+    analysis_json = analysis.analysis_json if analysis and isinstance(analysis.analysis_json, dict) else {}
+    protocol_copy = analysis.protocol_copy_json if analysis and isinstance(analysis.protocol_copy_json, dict) else {}
+    candidates = [
+        protocol_copy.get("strict_blocks") if isinstance(protocol_copy.get("strict_blocks"), dict) else {},
+        protocol_copy.get("bella_protocol_v4") if isinstance(protocol_copy.get("bella_protocol_v4"), dict) else {},
+        analysis_json.get("bella_protocol_v4") if isinstance(analysis_json.get("bella_protocol_v4"), dict) else {},
+        analysis_json.get("strict_blocks") if isinstance(analysis_json.get("strict_blocks"), dict) else {},
+        generated_report,
+        analysis_json,
+    ]
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        client = candidate.get("client") if isinstance(candidate.get("client"), dict) else {}
+        skin_age = candidate.get("skin_visual_age") if isinstance(candidate.get("skin_visual_age"), dict) else {}
+        for value in (client.get("age"), skin_age.get("passport_age"), candidate.get("passport_age")):
+            age = _int_age(value)
+            if age is not None:
+                return age
+    return _int_age(analysis.lead.age) if analysis and analysis.lead else None
 
 
 def _skin_type_title(value: Any) -> str:
@@ -156,15 +189,7 @@ def _list(value: Any, fallback: list[str] | None = None, limit: int | None = Non
 
 
 def _status(value: Any, color: Any = None) -> str:
-    cleaned = _clean_text(value).lower()
-    color_cleaned = _clean_text(color).lower()
-    if cleaned in STATUS_LABELS:
-        return cleaned
-    if color_cleaned in {"green", "зелёный", "зеленый"}:
-        return "good"
-    if color_cleaned in {"red", "красный"}:
-        return "priority"
-    return "attention"
+    return report_status(value, color)
 
 
 def _asset(path: str | None) -> dict[str, str | None]:
@@ -278,24 +303,46 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         if detail_label:
             detail_by_label[detail_label] = raw_detail
     zones = []
+    seen_zone_keys: set[str] = set()
     for index, raw_zone in enumerate(canonical_zones, start=1):
         if not isinstance(raw_zone, dict):
             continue
-        number = raw_zone.get("number") or index
-        label = _clean_text(raw_zone.get("name") or raw_zone.get("label"), f"Зона {index}")
-        detail = detail_by_num.get(str(number)) or detail_by_label.get(label.lower()) or raw_zone
+        raw_number = raw_zone.get("number") or index
+        label = normalize_zone_title(raw_zone.get("name") or raw_zone.get("label"), f"Зона {index}")
+        zone_key = re.sub(r"\s+", " ", label.lower()).strip()
+        if not zone_key or zone_key in seen_zone_keys:
+            continue
+        seen_zone_keys.add(zone_key)
+        number = len(zones) + 1
+        detail = detail_by_num.get(str(raw_number)) or detail_by_label.get(label.lower()) or raw_zone
         status = _status(raw_zone.get("status") or raw_zone.get("color") or detail.get("status"), detail.get("color"))
+        zone_copy = normalize_zone_copy(
+            label,
+            status,
+            visible=detail.get("what_is_visible") or detail.get("short_comment") or detail.get("issue") or detail.get("description"),
+            result=detail.get("what_gives") or detail.get("expected_effect") or detail.get("why_it_matters"),
+            recommendation=detail.get("what_to_do") or detail.get("recommended_focus") or detail.get("recommendation"),
+        )
+        visible = _clean_text(zone_copy["visible"])
+        effect = _clean_text(zone_copy["result"])
+        recommendation = _clean_text(zone_copy["recommendation"])
         zones.append(
             {
                 "number": number,
                 "label": label,
                 "status": status,
-                "status_label": STATUS_LABELS[status],
-                "short_comment": _clean_text(detail.get("short_comment"), STATUS_LABELS[status]),
-                "reason": _clean_text(detail.get("reason"), "На состояние зоны могут влиять тонус мышц, лимфоток, осанка и мимические привычки."),
-                "recommended_focus": _clean_text(detail.get("recommended_focus"), "Мягкая регулярная работа без перенапряжения."),
+                "status_label": status_label(status),
+                "short_comment": visible,
+                "what_visible": visible,
+                "what_gives": effect,
+                "reason": _clean_text(detail.get("reason"), visible),
+                "recommended_focus": recommendation,
+                "anchor": detail.get("anchor") if isinstance(detail.get("anchor"), dict) else None,
+                "shape": detail.get("shape") if isinstance(detail.get("shape"), dict) else {},
             }
         )
+        if len(zones) >= 6:
+            break
 
     seen_focus: set[str] = set()
     for zone in zones:
@@ -311,14 +358,10 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         _list(protocol_copy.get("strengths"), _list(analysis_json.get("strengths"), ["Естественная выразительность лица."], 3), 3),
         3,
     )
-    benefits = _list(
-        protocol_copy.get("benefits"),
-        _list(personal_insight.get("facefitness_strategy"), _list(analysis_json.get("facefitness_benefits"), ["Более свежий вид и мягкая поддержка овала лица."], 4), 4),
-        4,
-    )
+    benefits = FITNESS_BENEFITS
     causes = _list(
         _personal_causes(personal_insight),
-        _list(protocol_copy.get("causes"), _list(analysis_json.get("causes"), ["Тонус мышц, лимфоток, осанка и ежедневные привычки."], 4), 4),
+        _list(protocol_copy.get("causes"), _list(analysis_json.get("causes"), ["Тонус мышц, отёчность, осанка и ежедневные привычки."], 4), 4),
         4,
     )
     forecast_items = _list(protocol_copy.get("forecast"), [], 3)
@@ -330,6 +373,8 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         ]
 
     user_name = generated_report.get("user_name") or (analysis.lead.name if analysis and analysis.lead else "Ваш протокол")
+    client_age = _client_age_from_report(analysis, generated_report)
+    change_scenarios = face_change_scenarios(", ".join(priority_zones[:3]) or "зона глаз и овал", client_age)
     protocol_path = analysis.face_protocol_image_path if analysis and analysis.face_protocol_version == "final_v1" else None
     if not protocol_path and analysis:
         protocol_path = analysis.protocol_image_path or analysis.legacy_protocol_image_path
@@ -356,7 +401,6 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         "token": report.public_token,
         "user": {
             "name": user_name,
-            "source": "Telegram Bot" if analysis and analysis.telegram_user else "Bella Vladi",
         },
         "meta": {
             "analysis_date": generated_report.get("date") or (analysis.created_at.date().isoformat() if analysis and analysis.created_at else ""),
@@ -366,18 +410,18 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         "summary": {
             "main_conclusion": _clean_text(
                 protocol_copy.get("final_summary") or personal_insight.get("final_personal_summary") or personal_insight.get("main_hook") or analysis_json.get("summary"),
-                "В лице уже есть сильная природная база.",
+                "У вас хорошая природная база. Главный фокус сейчас — сделать взгляд свежее, уменьшить отёчность и поддержать чёткость лица.",
             ),
             "main_focus": _clean_text(
                 personal_insight.get("main_visual_conflict") or generated_report.get("main_problem") or ", ".join(priority_zones),
-                "Тонус и свежесть лица",
+                "Зона глаз, отёчность и чёткость овала",
             ),
             "potential": _clean_text(
                 personal_insight.get("main_leverage_point") or generated_report.get("main_potential") or ", ".join(strengths[:2]),
-                "Снять напряжение и раскрыть природную красоту через систему",
+                "Потенциал высокий: лицо не нужно менять — его нужно раскрыть.",
             ),
             "priority_zones": priority_zones,
-            "forecast_short": forecast_items[-1] if forecast_items else "8-12 недель: устойчивее овал.",
+            "forecast_short": change_scenarios[-1]["text"],
         },
         "skin_age": {
             "value": skin_age_value,
@@ -401,7 +445,7 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
                 4,
             ),
             "attention_points": _list(skin_type.get("attention_points"), ["Зона глаз быстрее показывает недосып.", "Тонус нижней трети."], 4),
-            "recommendations": _clean_text(generated_report.get("skin_recommendations"), "Мягкий лимфодренаж, регулярный уход и упражнения без перенапряжения."),
+            "recommendations": _clean_text(generated_report.get("skin_recommendations"), "Мягкая работа с отёчностью, регулярный уход и упражнения без перенапряжения."),
         },
         "face_aging": {
             "face_strengths": _clean_text(
@@ -440,15 +484,11 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         "strengths": strengths,
         "benefits": {
             "items": benefits,
-            "outro": _clean_text(
-                protocol_copy.get("benefits_outro"),
-                "Свежий взгляд, ровный тон и собранный овал создают эффект естественного лифтинга.",
-            ),
+            "outro": fitness_benefits_text(),
         },
         "forecast": [
-            {"period": "Первые изменения", "text": forecast_items[0] if len(forecast_items) > 0 else "7-14 дней: больше свежести."},
-            {"period": "Визуальный эффект", "text": forecast_items[1] if len(forecast_items) > 1 else "4-6 недель: заметнее тонус и взгляд."},
-            {"period": "Устойчивость", "text": forecast_items[2] if len(forecast_items) > 2 else "8-12 недель: устойчивее овал."},
+            {"period": item["title"], "text": item["text"]}
+            for item in change_scenarios
         ],
         "images": {
             "original_photo": _asset(analysis.original_photo_path if analysis else None),

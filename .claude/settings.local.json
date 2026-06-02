@@ -14,7 +14,9 @@
       "Bash(gh secret *)",
       "Bash(gh run *)",
       "Bash(git fetch *)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(chmod +x deploy.sh)",
+      "Bash(git commit -m 'Add deploy.sh: pull + rebuild + health-check \\(run on VM as facefit\\) *)"
     ]
   }
 }
