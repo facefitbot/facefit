@@ -172,8 +172,6 @@ OPENAI_API_KEY=
 STORAGE_DRIVER=local
 LOCAL_STORAGE_PATH=/app/storage
 
-# --- after-photo лучше выключить на старте (дорого/тяжело) ---
-ENABLE_AFTER_PHOTO=false
 ```
 
 Сгенерировать секреты прямо на VM:
@@ -194,7 +192,7 @@ $ openssl rand -hex 16     # для TELEGRAM_WEBHOOK_SECRET
 ```bash
 $ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build \
     postgres redis backend \
-    worker_analysis worker_report worker_after_photo worker_telegram
+    worker_analysis worker_report worker_telegram
 ```
 Первый раз собирается долго (тяжёлый образ с chromium/mediapipe) — это нормально, 5–15 минут.
 
@@ -393,7 +391,7 @@ $ docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 $ cd ~/bella
 $ git pull                      # или заново scp, если без Git
 $ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build \
-    backend worker_analysis worker_report worker_after_photo worker_telegram
+    backend worker_analysis worker_report worker_telegram
 ```
 Фронт обновляется сам при push в Git (если подключил Pages к репозиторию).
 
@@ -434,5 +432,4 @@ $ df -h /mnt/data
 - [ ] `getWebhookInfo` показывает правильный url, `pending_update_count` не растёт
 - [ ] Настроены cron-дамп БД и снапшоты диска
 - [ ] Подключён uptime-мониторинг `/health` с алертом
-- [ ] (опц.) `ENABLE_AFTER_PHOTO` включишь после стабилизации основного потока
 ```

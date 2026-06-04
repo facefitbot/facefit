@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from app.core.config import AFTER_PHOTO_DISABLED_REASON, after_photo_feature_enabled
 from app.core.text_utils import normalize_russian_age_phrases, russian_year_word
 from app.db.models import (
     AdminUser,
@@ -333,23 +332,6 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
     protocol_path = analysis.face_protocol_image_path if analysis and analysis.face_protocol_version == "final_v1" else None
     if not protocol_path and analysis:
         protocol_path = analysis.protocol_image_path or analysis.legacy_protocol_image_path
-    after_enabled = after_photo_feature_enabled()
-    after_status = ((analysis.after_photo_status if analysis else None) or "PENDING") if after_enabled else "DISABLED"
-    after_path = (analysis.after_photo_final_path or analysis.after_photo_path) if analysis and after_enabled else None
-    after_state = "disabled" if not after_enabled else ("ready" if after_path and after_status in {"APPROVED", "COMPLETED"} else "pending")
-    if after_enabled and after_status in {"FAILED", "SKIPPED_NO_API_KEY", "NEEDS_MANUAL_REVIEW"}:
-        after_state = "failed" if after_status == "FAILED" else "skipped"
-    after_messages = {
-        "disabled": AFTER_PHOTO_DISABLED_REASON,
-        "ready": "AI-визуализация готова.",
-        "pending": "After-photo формируется отдельно и появится после генерации.",
-        "failed": "After-photo не удалось сформировать. Основной протокол и отчет доступны.",
-        "skipped": (
-            "After-photo требует ручной проверки перед отправкой."
-            if after_status == "NEEDS_MANUAL_REVIEW"
-            else "After-photo временно недоступен без ключа генерации."
-        ),
-    }
 
     skin_age_value = _skin_age_value(skin_visual_age, protocol_copy)
     return {
@@ -453,12 +435,6 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         "images": {
             "original_photo": _asset(analysis.original_photo_path if analysis else None),
             "face_protocol": _asset(protocol_path),
-            "after_photo": _asset(after_path),
-        },
-        "after_photo": {
-            "status": after_status,
-            "state": after_state,
-            "message": after_messages[after_state],
         },
         "cta": {
             "text": settings.cta_text or "Получить персональную программу",
@@ -510,7 +486,6 @@ def lead_dict(lead: Lead, include_analyses: bool = False) -> dict:
 
 
 def analysis_dict(analysis: AnalysisRequest, compact: bool = False) -> dict:
-    after_enabled = after_photo_feature_enabled()
     data = {
         "id": analysis.id,
         "status": analysis.status,
@@ -527,16 +502,6 @@ def analysis_dict(analysis: AnalysisRequest, compact: bool = False) -> dict:
         "personal_insight_json": analysis.personal_insight_json or {},
         "legacy_protocol_image_path": _media_url(analysis.legacy_protocol_image_path),
         "legacy_protocol_image_url": analysis.legacy_protocol_image_url,
-        "after_photo_path": _media_url(analysis.after_photo_path) if after_enabled else None,
-        "after_photo_status": analysis.after_photo_status if after_enabled else "DISABLED",
-        "after_photo_plan": analysis.after_photo_plan if after_enabled else {"disabled": True, "reason": AFTER_PHOTO_DISABLED_REASON},
-        "after_photo_variants": (analysis.after_photo_variants or []) if after_enabled else [],
-        "after_photo_variant_paths": [_media_url(path) for path in (analysis.after_photo_variant_paths or []) if _media_url(path)] if after_enabled else [],
-        "after_photo_final_path": _media_url(analysis.after_photo_final_path) if after_enabled else None,
-        "after_photo_quality_results": (analysis.after_photo_quality_results or []) if after_enabled else [],
-        "after_photo_used_intensity": analysis.after_photo_used_intensity if after_enabled else None,
-        "after_photo_retry_count": (analysis.after_photo_retry_count or 0) if after_enabled else 0,
-        "final_after_photo_path": _media_url(analysis.after_photo_final_path or analysis.after_photo_path) if after_enabled else None,
         "moderation_status": analysis.moderation_status,
         "error_message": analysis.error_message,
         "created_at": analysis.created_at,
@@ -636,7 +601,6 @@ def report_public_dict(report: GeneratedReport, settings: BotSettings) -> dict:
             "face_protocol": _media_url(analysis.face_protocol_image_path) if analysis else None,
             "face_protocol_version": analysis.face_protocol_version if analysis else None,
             "legacy_protocol": _media_url(analysis.legacy_protocol_image_path) if analysis else None,
-            "after": _media_url(analysis.after_photo_final_path or analysis.after_photo_path) if analysis and after_photo_feature_enabled() else None,
         },
         "cta": {
             **view_model["cta"],
@@ -692,12 +656,11 @@ def settings_dict(settings: BotSettings, ai_key_status: dict | None = None) -> d
         "instagram_url": settings.instagram_url,
         "whatsapp_url": settings.whatsapp_url,
         "telegram_url": settings.telegram_url,
-        "after_photo_enabled": False,
         "manual_moderation_enabled": settings.manual_moderation_enabled,
         "regeneration_enabled": settings.regeneration_enabled,
         "analysis_limit_per_user": settings.analysis_limit_per_user,
         "problem_catalog": settings.problem_catalog or [],
-        "ai_settings": {**(settings.ai_settings or {}), "enable_after_photo": False},
+        "ai_settings": settings.ai_settings or {},
         "ai_key_status": ai_key_status or {},
     }
 

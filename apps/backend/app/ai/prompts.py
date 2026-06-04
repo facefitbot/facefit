@@ -4,8 +4,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from app.after_photo.prompt_builder import UNIVERSAL_AFTER_PHOTO_PROMPT, UNIVERSAL_NEGATIVE_PROMPT
-
 STRICT_AGING_KB_RULES = """
 КРИТИЧЕСКОЕ ПРАВИЛО БАЗЫ ЗНАНИЙ:
 - AI не имеет права придумывать типы лица, типы старения или характеристики.
@@ -263,10 +261,6 @@ REPORT_PROMPT = """Сформируй интересный подробный о
 
 Не обещай гарантированный результат. Не ставь диагнозы. Не добавляй markdown. Ответ строго JSON."""
 
-AFTER_PHOTO_PROMPT = UNIVERSAL_AFTER_PHOTO_PROMPT
-
-AFTER_PHOTO_NEGATIVE_PROMPT = UNIVERSAL_NEGATIVE_PROMPT
-
 DISCLAIMER = "Это предварительный визуальный AI-разбор по фото. Не медицинское заключение и не замена консультации специалиста."
 
 
@@ -340,7 +334,3 @@ def build_analysis_user_prompt(
 Не используй "тип лица" и не копируй фразы из примеров ТЗ.
 Верни строго JSON bella_face_protocol_v4 по схеме из системного промпта.
 """
-
-
-def build_after_photo_prompt(analysis_json: dict[str, Any]) -> str:
-    return AFTER_PHOTO_PROMPT

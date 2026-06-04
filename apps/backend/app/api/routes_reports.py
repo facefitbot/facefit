@@ -8,7 +8,7 @@ from app.db.crm import add_lead_event
 from app.db.models import AnalysisRequest, BotSettings, CampaignSource, ClientStatus, CtaClickEvent, GeneratedReport, ReportViewEvent
 from app.db.repositories import get_bot_settings
 from app.db.session import get_db
-from app.reports.bella_web_report import build_bella_web_report_data, render_bella_web_report_html
+from app.reports.web_report_v6 import build_bella_web_report_v6_data, render_bella_web_report_v6_html
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -29,12 +29,12 @@ def get_public_report(token: str, db: Session = Depends(get_db)) -> dict:
         raise not_found("Отчет не найден")
     settings = get_bot_settings(db)
     payload = report_public_dict(report, settings)
-    payload["report_abc"] = build_bella_web_report_data(report, settings)
+    payload["report_abc"] = build_bella_web_report_v6_data(report, settings)
     return payload
 
 
 @router.get("/{token}/html", response_class=HTMLResponse)
-def get_public_report_html(token: str, request: Request, db: Session = Depends(get_db)) -> str:
+def get_public_report_html(token: str, request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     report = (
         db.query(GeneratedReport)
         .options(
@@ -62,7 +62,13 @@ def get_public_report_html(token: str, request: Request, db: Session = Depends(g
         )
     )
     db.commit()
-    return render_bella_web_report_html(report, settings)
+    return HTMLResponse(
+        render_bella_web_report_v6_html(report, settings),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 @router.post("/{token}/view")

@@ -47,7 +47,7 @@ def _row_payload(log: AiJobLog) -> dict[str, Any]:
 def ai_performance(_: AdminAuth, db: Session = Depends(get_db), limit: int = Query(100, le=500)) -> dict:
     logs = (
         db.query(AiJobLog)
-        .filter(AiJobLog.stage.in_(["ai_processing_performance", "ai_image_performance", "telegram_send", "telegram_after_photo", "face_analysis"]))
+        .filter(AiJobLog.stage.in_(["ai_processing_performance", "ai_image_performance", "telegram_send", "face_analysis"]))
         .order_by(AiJobLog.created_at.desc())
         .limit(limit)
         .all()

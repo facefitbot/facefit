@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from app.ai.aging_knowledge import (
+    AGING_KNOWLEDGE,
+    AGING_TYPE_NAMES,
     aging_mechanics,
     aging_public_label,
     aging_strategy,
@@ -872,10 +874,10 @@ def build_face_zone_protocol_data(
         j_skin_age.get("main_focus"),
         "раскрыть свежесть, мягкость взгляда и собранный овал без изменения черт",
     )
-    skin_age_description = _limit(_strict_text(strict_blocks, "skin_visual_age"), 280, "")
+    skin_age_description = _png_block_text(_strict_text(strict_blocks, "skin_visual_age"), 220, "")
 
     strict_skin_type_text = _strict_text(strict_blocks, "skin_type")
-    skin_type_description = _limit(strict_skin_type_text, 300, "")
+    skin_type_description = _png_block_text(strict_skin_type_text, 220, "")
     skin_type_items = _strict_bullets(strict_blocks, "skin_type")
 
     strict_aging_text = _strict_text(strict_blocks, "aging_type")
@@ -892,13 +894,20 @@ def build_face_zone_protocol_data(
         }
     ) if selected_type_id == "tired_mixed" else []
     aging_type_display_name = build_aging_type_display_name(selected_type_id, mixed_components)
-    age_changes_text = _limit_keep_breaks(
+    age_changes_text = _png_age_changes_text(
+        selected_type_id,
+        mixed_components,
+        client_age,
+        focus_phrase,
         _strict_text_keep_breaks(strict_blocks, "age_changes"),
-        520,
-        "",
     )
-    future_changes_text = _limit(_strict_text(strict_blocks, "future_changes"), 520, "")
-    face_scenario = _limit(strict_aging_text, 560, "")
+    future_changes_text = _png_future_description(
+        selected_type_id,
+        mixed_components,
+        focus_phrase,
+        _strict_text(strict_blocks, "future_changes"),
+    )
+    face_scenario = _png_aging_description(selected_type_id, mixed_components, focus_phrase, strict_aging_text)
     face_first = _list(
         j_face_type.get("what_appears_first"),
         [
@@ -919,14 +928,14 @@ def build_face_zone_protocol_data(
 
     strict_strengths_text = _strict_text(strict_blocks, "face_strengths")
     strict_strengths_bullets = _strict_bullets(strict_blocks, "face_strengths")
-    strengths_text_for_render = _limit(strict_strengths_text, 430, "")
-    strengths_items = _one_paragraph_item(strengths_text_for_render, "", 420) or strict_strengths_bullets
-    strengths_compact_bullets: list[str] = _compact_list(strict_strengths_bullets, [], limit=3, max_chars=92)
+    strengths_text_for_render = _png_block_text(strict_strengths_text, 260, "")
+    strengths_items = _one_paragraph_item(strengths_text_for_render, "", 255) or strict_strengths_bullets
+    strengths_compact_bullets: list[str] = _compact_list(strict_strengths_bullets, [], limit=3, max_chars=74)
 
     strict_benefits_text = _strict_text(strict_blocks, "face_fitness_benefits")
     strict_benefits_bullets = _strict_bullets(strict_blocks, "face_fitness_benefits")
-    benefits_text_for_render = _limit(strict_benefits_text, 430, "")
-    sequence_items = _one_paragraph_item(benefits_text_for_render, "", 420) or strict_benefits_bullets
+    benefits_text_for_render = _png_block_text(strict_benefits_text, 230, "")
+    sequence_items = _one_paragraph_item(benefits_text_for_render, "", 225) or strict_benefits_bullets
     benefits_compact_bullets: list[str] = strict_benefits_bullets
 
     strict_forecast_intro, strict_forecast_items = _strict_time_items(strict_blocks)
@@ -1029,7 +1038,7 @@ def build_face_zone_protocol_data(
             "face_shape": face_shape,
             "aging_type": aging_type_display_name or aging_type,
             "combo_type_ids": mixed_components,
-            "main_scenario": _clip_words(face_scenario, 560, ""),
+            "main_scenario": _clip_words(face_scenario, 300, ""),
             "recommended_start": _limit(face_recommended_start, 78, ""),
             "forecast_title": "Что проявляется первым:",
             "forecast_items": [_limit(item, 100, "") for item in face_first[:2]],
@@ -1052,14 +1061,14 @@ def build_face_zone_protocol_data(
             "title": "Какие изменения будут со временем",
             "description": _limit(
                 future_changes_text,
-                520,
+                330,
                 "",
             ),
             "subtitle": "Механика:",
             "mechanics": mechanics[:2],
             "items": (
-                _one_paragraph_item(future_changes_text, "", 520)
-                + _one_paragraph_item(age_changes_text, "", 430)
+                _one_paragraph_item(future_changes_text, "", 320)
+                + _one_paragraph_item(age_changes_text, "", 260)
             )
             if future_changes_text
             else [],
@@ -1078,7 +1087,7 @@ def build_face_zone_protocol_data(
         "time_forecast": {
             "section_number": "08",
             "title": _meaningful(j_forecast.get("title"), "Прогноз по времени"),
-            "intro": strict_forecast_intro or "Если ты начнёшь заниматься по нашей системе:",
+            "intro": strict_forecast_intro or "Если вы начнёте заниматься по нашей системе:",
             "items": [_forecast_payload_item(item, index) for index, item in enumerate(forecast_items[:3])],
         },
         "growth_zones": {
@@ -1236,6 +1245,151 @@ def _compact_future_bullets(aging_type: Any) -> list[str]:
     ]
 
 
+_SECTION_LABEL_RE = re.compile(
+    r"\b(?:"
+    r"характеристика этого типа|"
+    r"как меняется лицо со временем|"
+    r"что будет, если ничего не делать|"
+    r"главный фокус фейс-?фитнеса|"
+    r"ведущие механизмы|"
+    r"на фото это видно|"
+    r"твой тип|"
+    r"ваш тип"
+    r")\s*[—:-]\s*",
+    re.IGNORECASE,
+)
+
+
+_TYPE_LABEL_RE = re.compile(
+    r"\b(?:"
+    r"мускульный|"
+    r"деформационно[- ]от[её]чный|"
+    r"мелкоморщинистый|"
+    r"усталый\s*/\s*смешанный|"
+    r"комбинированный\s+сценарий"
+    r")\s*[—:-]\s*",
+    re.IGNORECASE,
+)
+
+
+def _strip_png_labels(value: Any) -> str:
+    text = _clean_keep_breaks(value)
+    text = _SECTION_LABEL_RE.sub("", text)
+    text = _TYPE_LABEL_RE.sub("", text)
+    text = re.sub(r"\bповторяется как\b\s*[—:-]?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip(" .,:;—–-")
+
+
+def _sentence_list(value: Any) -> list[str]:
+    text = _strip_png_labels(value)
+    return [part.strip(" .,:;—–-") for part in re.split(r"(?<=[.!?])\s+", text) if part.strip(" .,:;—–-")]
+
+
+def _knowledge_text(type_id: str, key: str, *, max_sentences: int = 2) -> str:
+    info = AGING_KNOWLEDGE.get(type_id) or AGING_KNOWLEDGE["tired_mixed"]
+    sentences = _sentence_list(info.get(key, ""))
+    return ". ".join(sentences[:max_sentences]).strip(" .") + "." if sentences else ""
+
+
+def _canonical_component_id(component_id: str) -> str:
+    return normalize_aging_classification({"type_id": component_id})["type_id"]
+
+
+def _canonical_component_ids(component_ids: list[str]) -> list[str]:
+    result: list[str] = []
+    for component_id in component_ids:
+        canonical = _canonical_component_id(component_id)
+        if canonical not in result:
+            result.append(canonical)
+    return result
+
+
+def _component_names(component_ids: list[str]) -> list[str]:
+    names = {
+        "muscular": "Мускульный",
+        "deformation_edema": "Деформационно-отечный",
+        "fine_wrinkle": "Мелкоморщинистый",
+        "tired_mixed": "Усталый",
+    }
+    return [names[item] for item in _canonical_component_ids(component_ids) if item in names]
+
+
+def _component_phrase(component_id: str) -> str:
+    component_id = _canonical_component_id(component_id)
+    phrases = {
+        "muscular": "мышечное напряжение в верхней трети и жевательной зоне",
+        "deformation_edema": "склонность к отечности, мягкости тканей и утяжелению нижней трети",
+        "fine_wrinkle": "сухость, тонкость кожи и более раннюю мелкую сетку",
+        "tired_mixed": "усталость взгляда, выраженность носослезной зоны и снижение свежести к вечеру",
+    }
+    return phrases.get(component_id, aging_mechanics(component_id))
+
+
+def _png_aging_description(type_id: str, component_ids: list[str], focus_phrase: str, strict_text: Any) -> str:
+    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
+    if type_id == "tired_mixed" and component_ids:
+        canonical_components = _canonical_component_ids(component_ids)[:2]
+        names = _component_names(canonical_components)
+        components = "; ".join(_component_phrase(item) for item in canonical_components)
+        base = f"Это сочетание двух сценариев: {' + '.join(names[:2])}. По базе здесь сочетаются: {components}."
+        photo = f"По фото главный фокус: {focus_phrase}."
+        return _limit(" ".join([base, photo, ai_hint]), 300, base)
+    base = _knowledge_text(type_id, "what_inside", max_sentences=2)
+    photo = f"По фото главный фокус: {focus_phrase}."
+    return _limit(" ".join([base, photo, ai_hint]), 300, base)
+
+
+def _png_future_description(type_id: str, component_ids: list[str], focus_phrase: str, strict_text: Any) -> str:
+    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
+    if type_id == "tired_mixed" and component_ids:
+        parts = [_knowledge_text(item, "how_changes_over_time", max_sentences=1) for item in _canonical_component_ids(component_ids)[:2]]
+        base = " ".join(part for part in parts if part)
+        if not base:
+            base = _knowledge_text("tired_mixed", "how_changes_over_time", max_sentences=2)
+    else:
+        base = _knowledge_text(type_id, "how_changes_over_time", max_sentences=2)
+    finish = f"Сейчас важно поддержать {focus_phrase}, пока изменения мягкие и хорошо отвечают на регулярную работу."
+    return _limit(" ".join([base, ai_hint, finish]), 330, base)
+
+
+def _png_age_changes_text(type_id: str, component_ids: list[str], client_age: int, focus_phrase: str, strict_text: Any) -> str:
+    canonical_components = _canonical_component_ids(component_ids)
+    primary = canonical_components[0] if type_id == "tired_mixed" and canonical_components else type_id
+    second = canonical_components[1] if type_id == "tired_mixed" and len(canonical_components) > 1 else None
+    if primary == "muscular":
+        p1 = "25–30: чаще закрепляется напряжение лба, межбровья и жевательной зоны."
+        p2 = "30–35: мимические линии могут становиться глубже даже в покое."
+        p3 = "После 40: без расслабления лицо легче уходит в эффект строгого выражения."
+    elif primary == "deformation_edema":
+        p1 = "25–30: заметнее утренняя отечность и мягкость зоны под глазами."
+        p2 = "30–35: нижняя треть и овал могут выглядеть тяжелее без поддержки оттока."
+        p3 = "После 40: ткани быстрее теряют четкость, если не работать с шеей и лимфотоком."
+    elif primary == "fine_wrinkle":
+        p1 = "25–30: кожа быстрее показывает сухость и тонкие линии вокруг глаз."
+        p2 = "30–35: может снижаться ощущение объема в щеках и губах."
+        p3 = "После 40: без питания тканей лицо выглядит суше, хотя контур держится."
+    else:
+        p1 = "25–30: быстрее считывается усталость взгляда и носослезной зоны."
+        p2 = "30–35: носогубная зона и уголки рта могут активнее выдавать усталость."
+        p3 = "После 40: без тонуса и микроциркуляции свежесть возвращается медленнее."
+
+    if second == "deformation_edema":
+        p2 = "30–35: к этому может добавляться мягкость нижней трети и отечность."
+    elif second == "muscular":
+        p2 = "30–35: к этому может добавляться напряжение межбровья и жевательной зоны."
+    elif second == "fine_wrinkle":
+        p2 = "30–35: к этому может добавляться сухость и мелкая сетка вокруг глаз."
+
+    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
+    intro = f"Сейчас, в {client_age}, лучшее время работать мягко: главный фокус — {focus_phrase}."
+    return _limit_keep_breaks("\n\n".join([p1, p2, p3, intro, ai_hint]), 430, "\n\n".join([p1, p2, p3]))
+
+
+def _png_block_text(value: Any, max_chars: int, fallback: str = "") -> str:
+    return _limit(_strip_png_labels(value), max_chars, fallback)
+
+
 def _compact_skin_bullets(skin_type_name: Any) -> list[str]:
     text = _clean(skin_type_name).lower()
     if "сух" in text or "обезвож" in text:
@@ -1348,7 +1502,7 @@ def _compact_protocol_payload(data: dict[str, Any]) -> dict[str, Any]:
         "time_forecast": {
             "basis": _meaningful(
                 forecast.get("intro"),
-                "Если ты начнёшь заниматься по нашей системе",
+                "Если вы начнёте заниматься по нашей системе",
             ).rstrip(":"),
             "items": _compact_forecast_items(forecast.get("items"), []),
         },
@@ -1461,27 +1615,27 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
         "estimated_age": skin_age.get("age_value") or 30,
         "passport_age": skin_age.get("passport_age") or _dict(strict_blocks.get("client")).get("age"),
         "score": skin_age.get("score_value") or 82,
-        "description": _limit(
-            _full_text("skin_visual_age", compact["skin_visual_age"]["short_text"]),
-            300,
+        "description": _png_block_text(
+            skin_age.get("description") or _full_text("skin_visual_age", compact["skin_visual_age"]["short_text"]),
+            220,
             compact["skin_visual_age"]["short_text"],
         ),
     }
     alias_skin_type_name = _meaningful(skin_type.get("type_name"), compact["skin_type"]["short_text"])
     merged["block_02_skin_type"] = {
         "type": alias_skin_type_name,
-        "description": _limit(
+        "description": _png_block_text(
             skin_type.get("description"),
-            300,
+            220,
             "",
         ),
-        "features": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=92),
+        "features": _compact_list(skin_type.get("features") or skin_type.get("items"), [], limit=2, max_chars=74),
     }
-    alias_strengths_text = _limit(
+    alias_strengths_text = _png_block_text(
         data.get("strengths_compliment")
         or _dict(compact.get("face_strengths")).get("short_text")
         or " ".join(_dict(compact.get("face_strengths")).get("bullets") or []),
-        430,
+        260,
         "",
     )
     merged["block_03_strengths"] = {
@@ -1490,18 +1644,18 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     }
     merged["block_04_face_aging"] = {
         "aging_type": build_aging_type_display_name(alias_type_id, alias_mixed_components),
-        "description": _limit(_full_text("aging_type"), 560, ""),
+        "description": _png_block_text(face_type.get("main_scenario") or _full_text("aging_type"), 300, ""),
         "bullets": compact["face_and_aging_type"]["bullets"],
     }
     merged["zone_map"] = {"zones": _v3_template_zones(zone_map), "contours": zone_map.get("contours") or {}, "quality": zone_map.get("quality") or {}}
     merged["block_05_why"] = {
-        "text": _limit(_full_text("future_changes"), 520, ""),
+        "text": _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
         "reasons": compact["future_changes"]["bullets"],
     }
     age_changes = _dict(data.get("age_changes"))
     merged["block_06_age_changes"] = {
         "title": _meaningful(age_changes.get("title"), "Первые изменения по возрасту"),
-        "text": _limit_keep_breaks(_full_text("age_changes"), 520, ""),
+        "text": _limit_keep_breaks(age_changes.get("text") or _full_text("age_changes"), 430, ""),
     }
 
     # Backward-compatible aliases for older previews/templates.
@@ -1512,23 +1666,23 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
         "items": merged["block_03_strengths"]["items"],
     }
     merged["block_07_facefitness_benefits"] = {
-        "text": _limit(
+        "text": _png_block_text(
             _meaningful(benefits.get("text"), ""),
-            430,
+            230,
             "",
         ),
-        "items": compact["face_fitness_benefits"]["bullets"],
+        "items": _compact_list(compact["face_fitness_benefits"]["bullets"], [], limit=3, max_chars=68),
     }
     merged["block_08_timeline"] = {
         "intro": compact["time_forecast"]["basis"] + ":",
         "items": [
-            f"{item['period']} — {item['text']}"
+            _limit(f"{item['period']} — {item['text']}", 82, "")
             for item in compact["time_forecast"]["items"]
         ],
     }
     merged["growth_areas"] = _v3_growth_areas(data)
     merged["growth_text"] = compact["growth_zones"]["summary"]
-    merged["final_summary"] = _limit(_full_text("final_summary", compact["final_summary"]["text"]), 320, "")
+    merged["final_summary"] = _png_block_text(_full_text("final_summary", compact["final_summary"]["text"]), 260, "")
     merged["tagline"] = compact["final_summary"]["quote"]
     return merged
 

@@ -59,7 +59,7 @@ def _extract_image_bytes(data: dict[str, Any]) -> bytes:
 
 
 def _post_generation(payload: dict[str, Any]) -> dict[str, Any]:
-    raise RuntimeError("LEGACY_OPENAI_IMAGES_GENERATE_DISABLED_USE_AFTER_PHOTO_IMAGE_EDIT")
+    raise RuntimeError("LEGACY_OPENAI_IMAGES_GENERATE_DISABLED")
 
 
 def generate_protocol_background_with_openai(output_path: str, slide_kind: str) -> str:

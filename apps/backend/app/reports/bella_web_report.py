@@ -29,14 +29,13 @@ TEMPLATE_PATH = Path(__file__).resolve().parent / "bella_web_report.html"
 logger = logging.getLogger(__name__)
 
 FALLBACK_BEFORE = "Фото загружается"
-FALLBACK_AFTER = "Результат генерируется"
 
 ICON_SEQUENCE = ["spark", "eye", "leaf", "drop", "posture", "face"]
 FACTOR_ICONS = ["drop", "flow", "muscle", "jaw", "neck", "posture", "moon", "bottle", "smile"]
 
 WEB_REPORT_OBJECT_POSITION = "50% 42%"
 WEB_MAP_OBJECT_POSITION = "50% 58%"
-WEB_REPORT_VERSION = "bella_web_report_v5"
+WEB_REPORT_VERSION = "bella_web_report_v6"
 WEB_REPORT_REQUIRED_SECTIONS = (
     "intro",
     "visual_age",
@@ -202,7 +201,7 @@ def _quality_sentences(strings: list[tuple[str, str]]) -> dict[str, list[str]]:
     return sentences
 
 
-def _validate_web_report_v5(
+def _validate_legacy_web_report(
     detailed: dict[str, Any],
     *,
     aging_id: str,
@@ -1852,6 +1851,10 @@ def _build_detailed_web_sections(
 
 
 def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) -> dict[str, Any]:
+    from app.reports.web_report_v6 import build_bella_web_report_v6_data
+
+    return build_bella_web_report_v6_data(report, settings)
+
     analysis = report.analysis
     analysis_json = analysis.analysis_json if analysis and isinstance(analysis.analysis_json, dict) else {}
     protocol_copy = analysis.protocol_copy_json if analysis and isinstance(analysis.protocol_copy_json, dict) else {}
@@ -1928,7 +1931,7 @@ def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) 
         visual_age=visual_age,
         passport_age=passport_age,
     )
-    quality = _validate_web_report_v5(
+    quality = _validate_legacy_web_report(
         detailed,
         aging_id=aging_id,
         mixed_components=mixed_components,
@@ -1938,7 +1941,7 @@ def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) 
     detailed = {**detailed, "version": WEB_REPORT_VERSION, "source_trace": source_trace, "quality": quality}
     if not quality["passed"]:
         logger.warning(
-            "bella_web_report_v5_quality_failed report_id=%s aging_type=%s errors=%s warnings=%s",
+            "legacy_web_report_quality_failed report_id=%s aging_type=%s errors=%s warnings=%s",
             report.id,
             aging_id,
             quality["errors"],
@@ -1946,7 +1949,7 @@ def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) 
         )
     else:
         logger.info(
-            "bella_web_report_v5_quality_passed report_id=%s aging_type=%s warnings=%s",
+            "legacy_web_report_quality_passed report_id=%s aging_type=%s warnings=%s",
             report.id,
             aging_id,
             quality["warnings"],
@@ -1982,6 +1985,10 @@ def build_bella_web_report_data(report: GeneratedReport, settings: BotSettings) 
 
 
 def render_bella_web_report_html(report: GeneratedReport, settings: BotSettings) -> str:
+    from app.reports.web_report_v6 import render_bella_web_report_v6_html
+
+    return render_bella_web_report_v6_html(report, settings)
+
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     data_json = json.dumps(build_bella_web_report_data(report, settings), ensure_ascii=False).replace("</", "<\\/")
     token_json = json.dumps(report.public_token or "", ensure_ascii=False)

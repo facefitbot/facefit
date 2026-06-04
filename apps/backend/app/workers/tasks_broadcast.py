@@ -12,7 +12,7 @@ from sqlalchemy import String, cast, or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.models import AnalysisRequest, AudienceBase, AudienceBaseMember, Broadcast, BroadcastRecipient, Lead, TelegramUser
+from app.db.models import AudienceBase, AudienceBaseMember, Broadcast, BroadcastRecipient, Lead, TelegramUser
 from app.db.session import SessionLocal
 from app.storage.local import local_storage
 from app.workers.celery_app import celery_app
@@ -43,8 +43,6 @@ def _dynamic_lead_query(db: Session, filters: dict[str, Any]):
         query = query.filter(Lead.source == filters["source"])
     if filters.get("manager_id"):
         query = query.filter(Lead.assigned_manager_id == int(filters["manager_id"]))
-    if filters.get("after_photo_status"):
-        query = query.filter(Lead.analyses.any(AnalysisRequest.after_photo_status == str(filters["after_photo_status"])))
     return query
 
 

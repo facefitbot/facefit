@@ -57,7 +57,7 @@ Cloud Run хорош для **stateless лёгких бурстовых HTTP-API
         │   docker compose -f .. -f docker-compose.prod│
         │                                              │
         │   backend (FastAPI, uvicorn, webhook+API)    │
-        │   worker_analysis / report / after_photo /   │
+        │   worker_analysis / report  /   │
         │     telegram                                 │
         │   redis     (broker + progress state)        │
         │   postgres  (данные)                         │
@@ -78,7 +78,7 @@ Cloud Run хорош для **stateless лёгких бурстовых HTTP-API
 | **Celery workers** ×4 | VM (docker-compose) | Постоянные процессы. Co-located с backend — общий образ. |
 | **Redis** | VM (docker-compose) | Broker + ephemeral progress-state. Потеря некритична. |
 | **PostgreSQL** | VM (docker-compose) | Данные лидов. На персистентном диске + cron pg_dump в бэкап. |
-| **Файлы** (фото, PNG, after-photo) | **Персистентный диск** VM | Pipeline читает/пишет реальные файлы (`abs_path`). Диск переживает пересоздание VM, снапшотится. |
+| **Файлы** (фото, PNG) | **Персистентный диск** VM | Pipeline читает/пишет реальные файлы (`abs_path`). Диск переживает пересоздание VM, снапшотится. |
 | **TLS / домен / защита** | Cloudflare | Бесплатный HTTPS, нужен для Telegram webhook. |
 
 > Когда понадобится GCS: только при переезде на **несколько хостов**. Тогда — не «STORAGE_DRIVER=s3»
@@ -181,7 +181,7 @@ nano .env                        # заполнить прод-значения 
 
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build \
   postgres redis backend \
-  worker_analysis worker_report worker_after_photo worker_telegram
+  worker_analysis worker_report worker_telegram
 ```
 > Обрати внимание: `frontend` и `minio` в этой команде **не запускаются** (фронт на Cloudflare,
 > файлы на диске). `bot_polling` тоже не нужен — работаем в webhook-режиме.
@@ -241,8 +241,6 @@ curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
 | `STORAGE_DRIVER` | Оставить `local` (файлы на персистентном диске). |
 | `CORS_ORIGINS` | Только реальный домен фронта, не `*`. |
 | `TELEGRAM_WEBHOOK_SECRET` | Задать случайный. |
-| `ENABLE_AFTER_PHOTO` | На первом трафике рекомендую `false` (дорогой и тяжёлый шаг — генерация картинок). Включить когда основное стабильно. |
-| `AFTER_PHOTO_PROVIDER` | ⚠️ В `config.py` дефолт `replicate`, в `.env.example` — `openai`. Зафиксировать явно под выбранного провайдера. |
 | Concurrency | `ANALYSIS_WORKER_CONCURRENCY=2-4`, `TELEGRAM_WORKER_CONCURRENCY=4`. Поднимать по нагрузке. |
 
 > ⚠️ В коде нет fail-fast при дефолтном `JWT_SECRET`. Перед публичным трафиком **обязательно**
@@ -260,7 +258,6 @@ curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
 5. **Длина очередей** (ранний сигнал затыка pipeline):
    ```bash
    docker compose exec redis redis-cli llen analysis
-   docker compose exec redis redis-cli llen after_photo
    ```
    Растёт `analysis` и не разгребается → добавить воркеров.
 6. **Бэкап БД** (критично — Postgres у тебя self-hosted):
@@ -293,7 +290,6 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 2. **`@app.on_event("startup")`** — deprecated в FastAPI, мигрировать на `lifespan`. Скоро сломается.
 3. **Тяжёлый образ**: `worker_telegram` не нужны mediapipe/opencv/playwright. Опционально —
    отдельный лёгкий Dockerfile (экономия RAM). Не блокер.
-4. **Рассинхрон README ↔ config** по `AFTER_PHOTO_PROVIDER` — зафиксировать.
 5. **Удалить legacy renderers** (`protocol_v2/3/4`, `face_zone_protocol`) и неиспользуемый
    `S3Storage` — чистка мёртвого кода.
 

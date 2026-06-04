@@ -159,7 +159,7 @@ const reportStyles = `
 .range small { font-size:32px; color:var(--accent); font-style:italic; margin-left:6px; }
 .scale { margin-top:22px; height:8px; border-radius:99px; background:rgba(168,117,90,.15); position:relative; overflow:hidden; }
 .scale .fill { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg,var(--accent-2),var(--accent)); border-radius:99px; }
-.after-note, .editor-note {
+.soft-note, .editor-note {
   margin-top:16px; padding:15px 18px; background:var(--card-2); border:1px solid var(--line); border-radius:var(--r-sm);
   font-size:14px; color:var(--ink-2); line-height:1.55; font-style:italic;
 }
@@ -207,7 +207,6 @@ const reportStyles = `
 .timeline { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
 .timeline-card { padding:22px; border-radius:var(--r-sm); }
 .tl-period { font-size:11px; letter-spacing:.25em; text-transform:uppercase; color:var(--accent); font-weight:600; margin-bottom:10px; }
-.after-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
 .cta-block { background:linear-gradient(180deg,#fffaf1 0%, #efe1c6 100%); border:1px solid var(--line); border-radius:24px; padding:44px; display:grid; grid-template-columns:1.1fr .9fr; gap:36px; align-items:center; }
 .cta-block h3 { font-family:var(--serif); font-size:36px; line-height:1.15; margin:0 0 14px; font-weight:500; }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:16px 28px; border-radius:999px; background:var(--ink); color:#faf5ec; border:1px solid var(--ink); font-size:13px; letter-spacing:.22em; text-transform:uppercase; font-weight:600; cursor:pointer; text-decoration:none; white-space:normal; text-align:center; line-height:1.25; }
@@ -221,7 +220,7 @@ const reportStyles = `
   .report-sheet { padding:28px 22px 36px; border-radius:22px; }
   .display { font-size:38px; }
   .section-title { font-size:28px; }
-  .hero, .grid-4, .grid-3, .grid-2, .age-grid, .map-wrap, .zone-list, .cause-grid, .strengths-grid, .benefits, .timeline, .after-grid, .cta-block { grid-template-columns:1fr; }
+  .hero, .grid-4, .grid-3, .grid-2, .age-grid, .map-wrap, .zone-list, .cause-grid, .strengths-grid, .benefits, .timeline, .cta-block { grid-template-columns:1fr; }
   .section { padding:36px 0; }
   .range { font-size:64px; }
   .map-panel { position:relative; top:auto; }
@@ -352,7 +351,7 @@ export function PublicReport() {
                 <div className="range">{report.skin_age.value}<small>{report.skin_age.unit}</small></div>
                 <div className="label" style={{ color: "var(--accent)" }}>Состояние · {report.skin_age.score}</div>
                 <div className="scale"><div className="fill" style={{ width: `${report.skin_age.score_percent}%` }} /></div>
-                <p className="after-note">Оценка визуальная: смотрим тонус, плотность, свежесть, отёчность и собранность лица.</p>
+                <p className="soft-note">Оценка визуальная: смотрим тонус, плотность, свежесть, отёчность и собранность лица.</p>
               </div>
               <div className="grid-2">
                 <div className="card">
@@ -459,17 +458,6 @@ export function PublicReport() {
               ))}
             </div>
           </section>
-
-          {report.after_photo?.state !== "disabled" ? (
-            <section className="section">
-              <div className="section-head"><span className="num">09</span><h2 className="section-title">After-photo</h2></div>
-              <div className="after-grid">
-                <PhotoFrame asset={report.images.original_photo} label="Исходное фото" />
-                <PhotoFrame asset={report.after_photo.state === "ready" ? report.images.after_photo : null} label="AI-визуализация" pendingText={report.after_photo.message} />
-              </div>
-              <p className="after-note">{report.after_photo.message} Визуализация не является гарантией результата.</p>
-            </section>
-          ) : null}
 
           <section className="section">
             <div className="cta-block">

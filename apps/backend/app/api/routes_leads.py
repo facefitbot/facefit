@@ -25,15 +25,10 @@ def _analysis_storage_paths(lead: Lead) -> set[str]:
             analysis.protocol_image_path,
             analysis.face_protocol_image_path,
             analysis.legacy_protocol_image_path,
-            analysis.after_photo_path,
-            analysis.after_photo_final_path,
         ]:
             if path:
                 paths.add(path)
         for path in analysis.protocol_slide_paths or []:
-            if path:
-                paths.add(path)
-        for path in analysis.after_photo_variant_paths or []:
             if path:
                 paths.add(path)
         for image in analysis.images or []:

@@ -28,10 +28,6 @@ class ReviewPatch(BaseModel):
     status: str | None = None
 
 
-class AfterPhotoApproveVariant(BaseModel):
-    variant_path: str
-
-
 class PromptPatch(BaseModel):
     content: str | None = None
     is_active: bool | None = None
@@ -48,7 +44,6 @@ class SettingsPatch(BaseModel):
     instagram_url: str | None = None
     whatsapp_url: str | None = None
     telegram_url: str | None = None
-    after_photo_enabled: bool | None = None
     manual_moderation_enabled: bool | None = None
     regeneration_enabled: bool | None = None
     analysis_limit_per_user: int | None = None

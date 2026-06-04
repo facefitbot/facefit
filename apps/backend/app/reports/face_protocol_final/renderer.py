@@ -215,10 +215,6 @@ def _photo_url(photo: str | None) -> str:
     return _fallback_photo_data_uri()
 
 
-def _optional_photo_url(photo: str | None) -> str:
-    return _photo_url(photo) if photo else ""
-
-
 def _score_percent(score: str) -> int:
     match = re.search(r"\d{1,3}", score or "")
     if not match:
@@ -440,7 +436,7 @@ def _protocol_data(
     analysis_request_id: str,
     user_name: str,
     before_image_url: str,
-    after_image_url: str,
+    result_image_url: str,
     protocol_copy: dict[str, Any],
     analysis_json: dict[str, Any] | None,
     created_at: Any,
@@ -497,8 +493,8 @@ def _protocol_data(
         "images": {
             "before_image_url": before_image_url,
             "before_object_position": "50% 35%",
-            "after_image_url": after_image_url,
-            "after_object_position": "50% 35%",
+            "result_image_url": result_image_url,
+            "result_object_position": "50% 35%",
         },
         "point_a": point_a,
         "point_b": point_b,
@@ -597,7 +593,6 @@ def render_face_protocol_final_v1(
     protocol_copy: dict,
     output_dir: str,
     created_at,
-    after_photo_path_or_url: str | None = None,
     analysis_json: dict[str, Any] | None = None,
 ) -> str:
     logger.info("FACE_PROTOCOL_RENDERER=final_v1")
@@ -612,7 +607,7 @@ def render_face_protocol_final_v1(
             analysis_request_id=analysis_request_id,
             user_name=user_name,
             before_image_url=_photo_url(user_photo_path_or_url),
-            after_image_url=_optional_photo_url(after_photo_path_or_url),
+            result_image_url=_photo_url(user_photo_path_or_url),
             protocol_copy=normalized,
             analysis_json=analysis_json,
             created_at=created_at,

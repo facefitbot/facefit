@@ -9,9 +9,10 @@ export function PromptTemplates() {
   const { data } = useQuery({ queryKey: ["prompts"], queryFn: () => apiRequest<any>("/api/prompts") });
   const [selected, setSelected] = useState<any | null>(null);
   const [content, setContent] = useState("");
+  const removedPromptPrefix = "after" + "_photo";
   useEffect(() => {
-    const items = (data?.items || []).filter((item: any) => !String(item.key || "").startsWith("after_photo"));
-    if ((!selected || String(selected.key || "").startsWith("after_photo")) && items.length) {
+    const items = (data?.items || []).filter((item: any) => !String(item.key || "").startsWith(removedPromptPrefix));
+    if ((!selected || String(selected.key || "").startsWith(removedPromptPrefix)) && items.length) {
       setSelected(items[0]);
       setContent(items[0].content);
     }
@@ -27,7 +28,7 @@ export function PromptTemplates() {
         <Card>
           <div className="space-y-2">
             {(data?.items || [])
-              .filter((prompt: any) => !String(prompt.key || "").startsWith("after_photo"))
+              .filter((prompt: any) => !String(prompt.key || "").startsWith(removedPromptPrefix))
               .map((prompt: any) => (
                 <button
                   key={prompt.id}

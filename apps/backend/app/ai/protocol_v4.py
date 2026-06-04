@@ -672,7 +672,7 @@ class ForecastItemV4(BaseModel):
 class TimeForecastV4(BaseModel):
     section_number: str = "08"
     title: str = "Прогноз по времени"
-    intro: str = "Если ты начнёшь заниматься по нашей системе:"
+    intro: str = "Если вы начнёте заниматься по нашей системе:"
     items: list[ForecastItemV4]
 
 
@@ -1709,17 +1709,17 @@ def _photo_context_sentence(payload: dict[str, Any] | None, variant: str) -> str
         titles = ", ".join(title[:1].lower() + title[1:] for title, _ in zone_items[:2])
         parts = _format_photo_context_parts(zone_items)
         if variant == "future":
-            return _clip_text(f"На твоем фото эта динамика читается через: {parts}.", 132)
+            return _clip_text(f"На фото эта динамика может проявляться через: {parts}.", 132)
         if variant == "age":
-            return _clip_text(f"Сейчас первыми зонами внимания выглядят {titles}; с них и стоит начать мягкую работу.", 128)
-        return _clip_text(f"По фото ведущие маркеры: {parts}.", 132)
+            return _clip_text(f"Сейчас первыми зонами для работы выглядят {titles}; с них стоит начать мягко.", 128)
+        return _clip_text(f"На фото это подтверждают: {parts}.", 132)
 
     evidence = _photo_evidence_context_items(source, 2)
     if not evidence:
         return ""
     joined = "; ".join(item[:1].lower() + item[1:] for item in evidence)
     if variant == "future":
-        return _clip_text(f"На твоем фото это связано с видимыми признаками: {joined}.", 128)
+        return _clip_text(f"На фото это связано с видимыми признаками: {joined}.", 128)
     if variant == "age":
         return _clip_text(f"Сейчас первые зоны внимания по фото: {joined}.", 118)
     return _clip_text(f"По фото выделяются: {joined}.", 122)
@@ -1960,11 +1960,15 @@ def _strip_added_photo_context(text: Any) -> str:
         "природная база лица уже есть",
         "сильная природная база уже видна",
         "по фото ведущие маркеры",
+        "на фото это подтверждают",
         "по фото выделяются",
         "по фото особенно читается",
         "на твоем фото эта динамика",
         "на твоем фото это связано",
+        "на фото эта динамика может проявляться",
+        "на фото это связано",
         "сейчас первыми зонами внимания",
+        "сейчас первыми зонами для работы",
         "сейчас первые зоны внимания",
         "фокус текущего фото",
         "фокус по фото",
@@ -2050,7 +2054,7 @@ def _format_skin_visual_age_block(output: dict[str, Any]) -> None:
     body = re.sub(r"^(и\s+)?живой[.!]?$", "", body, flags=re.IGNORECASE).strip()
     if _normalize_for_match(body).startswith("визуально"):
         body = ""
-    body = _cap_first(body) or "Кожа выглядит ухоженной и живой"
+    body = _cap_first(body) or "Кожа смотрится аккуратной и живой"
     focus = _photo_context_focus(output, "свежесть взгляда")
     age_line = f"Визуально — на {format_years(visual_age)} ({label})" if visual_age else ""
     text = (
@@ -2081,7 +2085,7 @@ def _format_skin_type_block(output: dict[str, Any]) -> None:
         [
             f"Тип кожи: {short_name}",
             body,
-            f"Фокус текущего фото — {focus}; при уходе тон может выглядеть свежее и ровнее",
+            f"На этом фото больше ухода просит {focus}; при уходе тон может выглядеть свежее и ровнее",
         ],
         TEXT_LIMITS["skin_type.text"],
     )
@@ -2102,8 +2106,10 @@ def _format_face_strengths_block(output: dict[str, Any]) -> None:
     if not body:
         body = _compact_ai_text(build_face_strengths_text(type_id), 210)
     focus = _photo_focus_note(output, 78) or _photo_context_focus(output, "скулы и взгляд")
-    asset_sentence = "Форма, скулы, взгляд, симметрия и пропорции выглядят природным активом — такие черты часто подчеркивают процедурами"
-    parts = [asset_sentence, f"По фото особенно читается: {focus}", body]
+    asset_sentence = (
+        "В лице уже есть красивая база: аккуратный овал, скуловая опора, выразительный взгляд и спокойные пропорции"
+    )
+    parts = [asset_sentence, f"На этом фото сильнее всего считывается: {focus}", body]
     text = _fit_parts(
         parts,
         TEXT_LIMITS["face_strengths.text"],
@@ -2131,12 +2137,12 @@ def _format_face_fitness_block(output: dict[str, Any], type_id: str) -> None:
     focus = _photo_context_focus(output, "ключевые зоны лица")
     type_focus = _type_focus_public(type_id, mixed_components)
     if "природ" not in _normalize_for_match(body):
-        body = f"Сильная природная база уже видна. {body}".strip()
+        body = f"Природная база лица уже хорошо читается. {body}".strip()
     text = _fit_parts(
         [
             body,
-            f"По логике типа работа идет через {type_focus}",
-            f"Первый маршрут текущего фото — {focus}",
+            f"В работе важно соединить: {type_focus}",
+            f"Стартовые зоны по фото — {focus}",
         ],
         TEXT_LIMITS["face_fitness_benefits.text"],
     )
@@ -2170,7 +2176,7 @@ def _format_final_summary_block(output: dict[str, Any], type_id: str) -> None:
     parts = [opening]
     normalized_body = _normalize_for_match(opening)
     if "главн" not in normalized_body or _normalize_for_match(focus) not in normalized_body:
-        parts.append(f"Главный маршрут сейчас — {type_focus}; на фото особенно важны {focus}")
+        parts.append(f"Главное направление работы: {type_focus}; на фото особенно важны {focus}")
     if "курс" not in normalized_body:
         parts.append("Именно для этого создан этот курс")
     text = _fit_parts(parts, TEXT_LIMITS["final_summary.text"])
@@ -2274,7 +2280,7 @@ def enforce_protocol_v4_writing_format(output: dict[str, Any]) -> dict[str, Any]
     _force_photo_specific_block(result, "final_summary", variant="aging", max_chars=TEXT_LIMITS["final_summary.text"])
 
     forecast = dict(result.get("time_forecast") if isinstance(result.get("time_forecast"), dict) else {})
-    forecast["intro"] = "Если ты начнёшь заниматься по нашей системе:"
+    forecast["intro"] = "Если вы начнёте заниматься по нашей системе:"
     raw_items = forecast.get("items") if isinstance(forecast.get("items"), list) else []
     items: list[dict[str, str]] = []
     personalized_items = build_personalized_forecast_items(type_id, result)
@@ -2353,10 +2359,13 @@ def _set_block_text(output: dict[str, Any], key: str, text: str) -> None:
 
 def build_personalized_skin_visual_age_text(base_text: Any, payload: dict[str, Any] | None = None) -> str:
     focus = _photo_context_focus(payload, "свежесть взгляда")
-    text = f"Кожа выглядит ухоженной; визуальный возраст больше задают {focus}. Хорошая новость — эти зоны хорошо отвечают на мягкую регулярность."
+    text = (
+        f"Кожа смотрится аккуратно и живо; визуальный возраст сильнее всего формируют {focus}. "
+        "Хорошая новость — эти зоны обычно хорошо отвечают на регулярную мягкую работу."
+    )
     if len(text) <= TEXT_LIMITS["skin_visual_age.text"]:
         return text
-    return _clip_text(f"Кожа выглядит ухоженной; визуальный возраст больше задают {focus}.", TEXT_LIMITS["skin_visual_age.text"])
+    return _clip_text(f"Кожа смотрится аккуратно; визуальный возраст сильнее всего формируют {focus}.", TEXT_LIMITS["skin_visual_age.text"])
 
 
 def build_personalized_skin_type_text(
@@ -2369,7 +2378,7 @@ def build_personalized_skin_type_text(
     short_name = normalized[:1].lower() + normalized[1:]
     text = (
         f"У вас {short_name}. Плюс этого типа — кожа хорошо держит каркас лица. "
-        f"По фото больше внимания просит {focus}; при регулярном уходе тон выглядит свежее и ровнее."
+        f"На текущем фото больше ухода просит {focus}; при регулярном увлажнении тон может стать свежее и ровнее."
     )
     if len(text) <= TEXT_LIMITS["skin_type.text"]:
         return text
@@ -2387,14 +2396,14 @@ def build_personalized_face_strengths_text(
     positive_focus = _photo_positive_focus(payload)
     focus = _photo_context_focus(payload, "зона глаз")
     text = (
-        f"У вас гармоничная форма лица: на фото особенно красиво читается {positive_focus}. "
-        f"Скулы и костная база дают лицу опору, глаза остаются выразительной сильной зоной. "
-        f"Пропорции выглядят природным активом — то, что многие подчеркивают процедурами, у вас уже есть."
+        f"На фото красиво читается природная форма лица: {positive_focus}. "
+        "Скулы и костная база дают опору, глаза остаются выразительной сильной зоной, "
+        "а пропорции уже создают тот эффект, который часто стараются подчеркнуть процедурами."
     )
     if len(text) <= TEXT_LIMITS["face_strengths.text"]:
         return text
     return _clip_text(
-        f"У вас гармоничная форма лица, скулы дают опору, а глаза — сильная зона. На фото это особенно видно через {focus}. Пропорции выглядят природным активом, который многие подчеркивают процедурами.",
+        f"На фото красиво читаются форма лица, скулы и взгляд. Особенно заметно через {focus}. Пропорции уже дают природную выразительность, которую часто стараются подчеркнуть процедурами.",
         TEXT_LIMITS["face_strengths.text"],
     )
 
@@ -2407,8 +2416,8 @@ def build_personalized_face_fitness_benefits_text(
     focus = _photo_context_focus(payload, "зона глаз")
     type_focus = AGING_KNOWLEDGE_BASE.get(type_id, AGING_KNOWLEDGE_BASE["tired_mixed"])["main_focus"]
     text = (
-        f"Фейс-фитнес здесь не меняет черты, а раскрывает вашу природную базу. "
-        f"В вашем маршруте первый фокус — {focus}. Главная логика типа: {type_focus}; за счет этого лицо может выглядеть свежее, мягче и собраннее."
+        "Фейс-фитнес здесь помогает подчеркнуть природные черты без изменения лица. "
+        f"Начинать лучше с зоны «{focus}». В работе важно соединить: {type_focus}; так лицо может выглядеть свежее, мягче и собраннее."
     )
     return _clip_text(text, TEXT_LIMITS["face_fitness_benefits.text"])
 
@@ -2428,9 +2437,9 @@ def build_personalized_forecast_items(
     elif type_id == "fine_wrinkle":
         third = "текстура кожи"
     return [
-        {"period": "Через 2 недели", "text": _clip_text(f"{first} может выглядеть мягче и свежее.", TEXT_LIMITS["time_forecast.items.text"])},
-        {"period": "Через 3–4 недели", "text": _clip_text(f"работа с зоной «{second}» станет заметнее в выражении лица.", TEXT_LIMITS["time_forecast.items.text"])},
-        {"period": "Через 6–8 недель", "text": _clip_text(f"работа с зоной «{third}» поможет закрепить эффект регулярности.", TEXT_LIMITS["time_forecast.items.text"])},
+        {"period": "Через 2 недели", "text": _clip_text(f"{first} обычно первым дает более отдохнувшее впечатление.", TEXT_LIMITS["time_forecast.items.text"])},
+        {"period": "Через 3–4 недели", "text": _clip_text(f"зона «{second}» может читаться спокойнее и аккуратнее.", TEXT_LIMITS["time_forecast.items.text"])},
+        {"period": "Через 6–8 недель", "text": _clip_text(f"зона «{third}» лучше держит результат регулярной работы.", TEXT_LIMITS["time_forecast.items.text"])},
     ]
 
 
@@ -2442,8 +2451,8 @@ def build_personalized_final_summary_text(
     focus = _photo_context_focus(payload, "главные зоны лица")
     type_focus = AGING_KNOWLEDGE_BASE.get(type_id, AGING_KNOWLEDGE_BASE["tired_mixed"])["main_focus"]
     text = (
-        f"У вас красивое лицо с сильной природной базой. Главное сейчас — мягко поддержать ключевые зоны ({focus}) "
-        f"и идти по логике типа: {type_focus}. Так раскрывается ваша настоящая красота. Именно для этого создан этот курс."
+        f"У вас красивое лицо с выразительной природной базой. Сейчас важно поддержать {focus} "
+        f"и работать по фокусу вашего типа: {type_focus}. Так сильные стороны лица раскрываются яснее. Именно для этого создан этот курс."
     )
     return _clip_text(text, TEXT_LIMITS["final_summary.text"])
 
@@ -2534,7 +2543,7 @@ def normalize_protocol_v4_shape(output: dict[str, Any]) -> dict[str, Any]:
         normalized_items.append({"period": period, "text": _clip_text(text, TEXT_LIMITS["time_forecast.items.text"])})
     forecast["section_number"] = "08"
     forecast["title"] = "Прогноз по времени"
-    forecast["intro"] = forecast.get("intro") or "Если ты начнёшь заниматься по нашей системе:"
+    forecast["intro"] = forecast.get("intro") or "Если вы начнёте заниматься по нашей системе:"
     forecast["items"] = normalized_items
     result["time_forecast"] = forecast
 
@@ -2776,6 +2785,61 @@ def validate_age_changes_timeline(output: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _distinct_block_text(output: dict[str, Any], key: str) -> str:
+    text = _block_text_from(output, key)
+    text = _strip_known_block_label(
+        text,
+        (
+            "Характеристика этого типа",
+            "Что происходит внутри",
+            "Как меняется лицо со временем",
+            "Первые изменения по возрасту",
+            "Что даст фейс-фитнес",
+            "Итог",
+        ),
+    )
+    return _normalize_for_match(text)
+
+
+def _token_similarity(left: str, right: str) -> float:
+    left_tokens = {token for token in left.split() if len(token) >= 5}
+    right_tokens = {token for token in right.split() if len(token) >= 5}
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / max(1, len(left_tokens | right_tokens))
+
+
+def validate_visible_blocks_are_distinct(output: dict[str, Any]) -> list[str]:
+    """Reject outputs where different cards are essentially the same text."""
+    block_keys = (
+        "skin_visual_age",
+        "skin_type",
+        "face_strengths",
+        "aging_type",
+        "future_changes",
+        "age_changes",
+        "face_fitness_benefits",
+        "final_summary",
+    )
+    texts = {key: _distinct_block_text(output, key) for key in block_keys}
+    errors: list[str] = []
+    for index, left_key in enumerate(block_keys):
+        left = texts[left_key]
+        if len(left) < 90:
+            continue
+        for right_key in block_keys[index + 1 :]:
+            right = texts[right_key]
+            if len(right) < 90:
+                continue
+            sequence_ratio = SequenceMatcher(None, left, right).ratio()
+            token_ratio = _token_similarity(left, right)
+            if sequence_ratio >= 0.74 or token_ratio >= 0.72:
+                errors.append(
+                    f"visible blocks too similar: {left_key} and {right_key}; rewrite with separate purpose"
+                )
+    return errors
+
+
 def validate_text_length(output: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     for path, max_chars in TEXT_LIMITS.items():
@@ -2835,6 +2899,7 @@ def validate_bella_protocol_v4(output: dict[str, Any], *, best_effort: bool = Fa
         output = validate_schema(output)
         output = canonicalize_knowledge_base_blocks(output)
         output = repair_protocol_v4_validation_edges(output)
+        output = enforce_protocol_v4_writing_format(output)
         output = normalize_protocol_v4_lengths(output)
         output = validate_schema(output)
     except ProtocolValidationError as exc:
@@ -2852,6 +2917,7 @@ def validate_bella_protocol_v4(output: dict[str, Any], *, best_effort: bool = Fa
         validate_no_copied_examples,
         validate_no_generic_template_text,
         validate_photo_specific_protocol,
+        validate_visible_blocks_are_distinct,
         validate_text_length,
         validate_forecast_periods,
     ]
