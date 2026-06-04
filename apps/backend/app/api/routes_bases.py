@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.schemas import AudienceBaseCreate, AudienceBaseMembersPatch, AudienceBasePatch
 from app.core.exceptions import not_found
 from app.core.security import AdminAuth, require_write_access
-from app.db.models import AnalysisRequest, AudienceBase, AudienceBaseMember, Broadcast, Lead, TelegramUser
+from app.db.models import AudienceBase, AudienceBaseMember, Broadcast, Lead, TelegramUser
 from app.db.session import get_db
 
 router = APIRouter(prefix="/api/admin/bases", tags=["admin-bases"])
@@ -64,8 +64,6 @@ def _apply_dynamic_filters(query, db: Session, filters: dict[str, Any]):
         query = query.filter(cast(Lead.utm, String).ilike(f"%{filters['campaign']}%"))
     if filters.get("manager_id"):
         query = query.filter(Lead.assigned_manager_id == int(filters["manager_id"]))
-    if filters.get("after_photo_status"):
-        query = query.filter(Lead.analyses.any(AnalysisRequest.after_photo_status == str(filters["after_photo_status"])))
     created_from = _parse_datetime(filters.get("created_from"))
     created_to = _parse_datetime(filters.get("created_to"), end_of_day=True)
     if created_from:

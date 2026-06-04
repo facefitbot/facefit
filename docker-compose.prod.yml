@@ -6,7 +6,7 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build \
 #     postgres redis backend \
-#     worker_analysis worker_report worker_after_photo worker_telegram
+#     worker_analysis worker_report worker_telegram
 #
 # Перед первым запуском на VM создать каталоги на персистентном диске:
 #   sudo mkdir -p /mnt/data/postgres /mnt/data/storage
@@ -44,10 +44,6 @@ services:
   worker_report:
     restart: unless-stopped
     mem_limit: 1g
-
-  worker_after_photo:
-    restart: unless-stopped
-    mem_limit: 2g
 
   worker_telegram:
     restart: unless-stopped

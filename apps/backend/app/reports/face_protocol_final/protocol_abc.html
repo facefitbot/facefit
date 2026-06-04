@@ -781,8 +781,8 @@ const previewProtocolData = {
   images: {
     before_image_url: "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460'><defs><radialGradient id='g' cx='50%' cy='40%' r='55%'><stop offset='0%' stop-color='#f5e6cb'/><stop offset='60%' stop-color='#e6d2af'/><stop offset='100%' stop-color='#cbb88f'/></radialGradient></defs><rect width='400' height='460' fill='url(#g)'/><ellipse cx='200' cy='200' rx='95' ry='120' fill='#d9c2a0' opacity='.85'/><ellipse cx='200' cy='180' rx='75' ry='95' fill='#c9af89' opacity='.55'/><text x='200' y='430' text-anchor='middle' fill='#8a7c68' font-family='monospace' font-size='11' letter-spacing='2'>BEFORE · PLACEHOLDER</text></svg>`),
     before_object_position: "50% 35%",
-    after_image_url: "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460'><defs><radialGradient id='g' cx='50%' cy='40%' r='55%'><stop offset='0%' stop-color='#fbf2dd'/><stop offset='60%' stop-color='#eddcb8'/><stop offset='100%' stop-color='#d3bd92'/></radialGradient></defs><rect width='400' height='460' fill='url(#g)'/><ellipse cx='200' cy='200' rx='85' ry='115' fill='#e6cfa6' opacity='.85'/><ellipse cx='200' cy='180' rx='65' ry='90' fill='#dbbd8e' opacity='.55'/><text x='200' y='430' text-anchor='middle' fill='#8a7c68' font-family='monospace' font-size='11' letter-spacing='2'>AFTER · PLACEHOLDER</text></svg>`),
-    after_object_position: "50% 35%"
+    result_image_url: "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460'><defs><radialGradient id='g' cx='50%' cy='40%' r='55%'><stop offset='0%' stop-color='#fbf2dd'/><stop offset='60%' stop-color='#eddcb8'/><stop offset='100%' stop-color='#d3bd92'/></radialGradient></defs><rect width='400' height='460' fill='url(#g)'/><ellipse cx='200' cy='200' rx='85' ry='115' fill='#e6cfa6' opacity='.85'/><ellipse cx='200' cy='180' rx='65' ry='90' fill='#dbbd8e' opacity='.55'/><text x='200' y='430' text-anchor='middle' fill='#8a7c68' font-family='monospace' font-size='11' letter-spacing='2'>RESULT · PLACEHOLDER</text></svg>`),
+    result_object_position: "50% 35%"
   },
   point_a: {
     title: "ТОЧКА А",
@@ -1131,7 +1131,7 @@ function renderPointC(point, images){
 
     const img = root.querySelector('[data-slot="c-img"]');
     const fb  = root.querySelector('[data-slot="c-fallback"]');
-    setImage(img, images.after_image_url, fb, images.after_object_position);
+    setImage(img, images.result_image_url, fb, images.result_object_position);
 
     const svg = root.querySelector('[data-slot="c-arrows"]');
     const lbl = root.querySelector('[data-slot="c-labels"]');

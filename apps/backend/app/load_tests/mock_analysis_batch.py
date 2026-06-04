@@ -94,10 +94,6 @@ def _create_batch(count: int, batch_id: str) -> list[int]:
                 personal_insight_json={},
                 protocol_slide_paths=[],
                 protocol_slide_copy={},
-                after_photo_plan={},
-                after_photo_variants=[],
-                after_photo_variant_paths=[],
-                after_photo_quality_results=[],
             )
             db.add(analysis)
             db.flush()

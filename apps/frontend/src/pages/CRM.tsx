@@ -33,8 +33,6 @@ type CrmLead = {
   last_action?: string | null;
   report_opened?: boolean;
   cta_clicked?: boolean;
-  has_after_photo?: boolean;
-  after_photo_status?: string | null;
   tasks_count?: number;
   overdue_tasks_count?: number;
   urgency?: string;

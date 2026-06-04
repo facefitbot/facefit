@@ -9,7 +9,6 @@ celery_app = Celery(
     include=[
         "app.workers.tasks_analysis",
         "app.workers.tasks_report",
-        "app.workers.tasks_after_photo",
         "app.workers.tasks_broadcast",
         "app.workers.tasks_telegram",
     ],
@@ -28,7 +27,6 @@ celery_app.conf.update(
     task_routes={
         "app.workers.tasks_analysis.run_analysis_pipeline": {"queue": "analysis"},
         "app.workers.tasks_report.regenerate_report_task": {"queue": "report"},
-        "app.workers.tasks_after_photo.generate_after_photo_task": {"queue": "after_photo"},
         "app.workers.tasks_broadcast.send_broadcast_task": {"queue": "telegram"},
         "app.workers.tasks_telegram.*": {"queue": "telegram"},
     },

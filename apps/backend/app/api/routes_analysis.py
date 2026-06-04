@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.schemas import ReviewPatch
 from app.api.serializers import analysis_dict
-from app.core.config import AFTER_PHOTO_DISABLED_REASON
 from app.core.exceptions import not_found
 from app.core.security import AdminAuth
 from app.db.models import AnalysisRequest, AnalysisStatus
@@ -17,10 +16,6 @@ from app.workers.tasks_analysis import (
 from app.workers.tasks_report import enqueue_report
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
-
-
-def _after_photo_disabled_response() -> dict:
-    return {"ok": False, "status": "DISABLED", "message": AFTER_PHOTO_DISABLED_REASON}
 
 
 @router.get("")
@@ -104,45 +99,6 @@ def regenerate_face_protocol(analysis_id: int, _: AdminAuth, db: Session = Depen
         raise not_found("Анализ не найден")
     regenerate_face_protocol_png_sync(db, analysis)
     return {"ok": True}
-
-
-@router.post("/{analysis_id}/regenerate-after-photo")
-def regenerate_after_photo(
-    analysis_id: int,
-    _: AdminAuth,
-    db: Session = Depends(get_db),
-    intensity: str | None = Query(None),
-) -> dict:
-    if not db.query(AnalysisRequest.id).filter(AnalysisRequest.id == analysis_id).first():
-        raise not_found("Анализ не найден")
-    return _after_photo_disabled_response()
-
-
-@router.post("/{analysis_id}/regenerate-after-photo/{intensity}")
-def regenerate_after_photo_with_intensity(analysis_id: int, intensity: str, _: AdminAuth, db: Session = Depends(get_db)) -> dict:
-    if intensity not in {"subtle", "balanced", "visible"}:
-        raise not_found("Intensity preset не найден")
-    if not db.query(AnalysisRequest.id).filter(AnalysisRequest.id == analysis_id).first():
-        raise not_found("Анализ не найден")
-    return _after_photo_disabled_response()
-
-
-@router.post("/{analysis_id}/after-photo/approve-variant")
-def approve_after_photo_variant(
-    analysis_id: int,
-    _: AdminAuth,
-    db: Session = Depends(get_db),
-) -> dict:
-    if not db.query(AnalysisRequest.id).filter(AnalysisRequest.id == analysis_id).first():
-        raise not_found("Анализ не найден")
-    return _after_photo_disabled_response()
-
-
-@router.post("/{analysis_id}/after-photo/needs-manual-review")
-def mark_after_photo_needs_manual_review(analysis_id: int, _: AdminAuth, db: Session = Depends(get_db)) -> dict:
-    if not db.query(AnalysisRequest.id).filter(AnalysisRequest.id == analysis_id).first():
-        raise not_found("Анализ не найден")
-    return _after_photo_disabled_response()
 
 
 @router.patch("/{analysis_id}/review")

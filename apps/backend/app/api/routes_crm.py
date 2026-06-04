@@ -77,7 +77,6 @@ KANBAN_STATUSES = [
 
 FUNNEL_EVENT_LABELS = {
     "protocol_sent": "Протокол отправлен",
-    "funnel_after_visual_offer_sent": "After-оффер отправлен",
     "training_requested": "Запросили тренировку",
     "course_more_clicked": "Нажали подробнее о курсе",
     "questions_clicked": "Задали вопрос",
@@ -358,8 +357,6 @@ def _crm_lead_dict(lead: Lead, include_detail: bool = False) -> dict[str, Any]:
         "touch_count": len(events) + len(touchpoints) + len(lead.notes or []) + len(activities),
         "report_opened": lead.report_opened,
         "cta_clicked": lead.cta_clicked,
-        "after_photo_status": latest_analysis.after_photo_status if latest_analysis else None,
-        "has_after_photo": bool(latest_analysis and (latest_analysis.after_photo_final_path or latest_analysis.after_photo_path)),
         "report": {
             "id": report.id,
             "public_token": report.public_token,
@@ -454,8 +451,6 @@ def _crm_lead_dict(lead: Lead, include_detail: bool = False) -> dict[str, Any]:
                 "original_photo_url": _media_url(item.original_photo_path),
                 "face_protocol_image_url": _media_url(item.face_protocol_image_path or item.protocol_image_path or item.legacy_protocol_image_path),
                 "protocol_image_url": _media_url(item.face_protocol_image_path or item.protocol_image_path or item.legacy_protocol_image_path),
-                "after_photo_status": item.after_photo_status,
-                "after_photo_url": _media_url(item.after_photo_final_path or item.after_photo_path),
                 "report_public_token": item.report.public_token if item.report else None,
             }
             for item in sorted(lead.analyses or [], key=lambda item: item.created_at, reverse=True)
@@ -481,7 +476,6 @@ def _crm_lead_dict(lead: Lead, include_detail: bool = False) -> dict[str, Any]:
                 if latest_analysis
                 else None
             ),
-            "after_photo_url": _media_url((latest_analysis.after_photo_final_path or latest_analysis.after_photo_path) if latest_analysis else None),
         }
     return data
 
@@ -519,7 +513,6 @@ def _apply_lead_filters(
     problem: str | None = None,
     report_opened: bool | None = None,
     cta_clicked: bool | None = None,
-    after_photo_status: str | None = None,
     only_mine: bool = False,
     unassigned: bool = False,
     current_admin_id: int | None = None,
@@ -572,8 +565,6 @@ def _apply_lead_filters(
         query = query.filter(Lead.report_opened.is_(report_opened))
     if cta_clicked is not None:
         query = query.filter(Lead.cta_clicked.is_(cta_clicked))
-    if after_photo_status:
-        query = query.filter(Lead.analyses.any(AnalysisRequest.after_photo_status == after_photo_status))
     created_from = _parse_datetime(date_from)
     created_to = _parse_datetime(date_to, end_of_day=True)
     if created_from:
@@ -705,7 +696,6 @@ def list_crm_leads(
     problem: str | None = None,
     report_opened: bool | None = None,
     cta_clicked: bool | None = None,
-    after_photo_status: str | None = None,
     only_mine: bool = False,
     unassigned: bool = False,
     date_from: str | None = None,
@@ -735,7 +725,6 @@ def list_crm_leads(
         problem=problem,
         report_opened=report_opened,
         cta_clicked=cta_clicked,
-        after_photo_status=after_photo_status,
         only_mine=only_mine,
         unassigned=unassigned,
         current_admin_id=admin.id,
@@ -771,7 +760,6 @@ def crm_kanban(
     problem: str | None = None,
     report_opened: bool | None = None,
     cta_clicked: bool | None = None,
-    after_photo_status: str | None = None,
     only_mine: bool = False,
     unassigned: bool = False,
     date_from: str | None = None,
@@ -799,7 +787,6 @@ def crm_kanban(
             problem=problem,
             report_opened=report_opened,
             cta_clicked=cta_clicked,
-            after_photo_status=after_photo_status,
             only_mine=only_mine,
             unassigned=unassigned,
             current_admin_id=admin.id,

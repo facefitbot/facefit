@@ -23,10 +23,9 @@ STAGE_ORDER = {
     "queued": 10,
     "analysis": 20,
     "protocol_copy": 30,
-    "after_photo": 40,
-    "render": 50,
-    "report": 60,
-    "almost_ready": 70,
+    "render": 40,
+    "report": 50,
+    "almost_ready": 60,
     "ready": 100,
 }
 
@@ -47,15 +46,11 @@ STAGE_TEXT = {
     ),
     "render": (
         "Bella Vladi Face Protocol\n\n"
-        "Собираю PNG-фото-протокол со встроенным after-фото."
+        "Собираю PNG-фото-протокол с картой зон лица."
     ),
     "report": (
         "Bella Vladi Face Protocol\n\n"
         "Готовлю подробный web-отчет и ссылку для просмотра."
-    ),
-    "after_photo": (
-        "Bella Vladi Face Protocol\n\n"
-        "Генерирую after-фото. Оно будет встроено прямо в фото-протокол."
     ),
     "almost_ready": (
         "Bella Vladi Face Protocol\n\n"

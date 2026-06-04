@@ -31,7 +31,6 @@ class AnalysisStatus:
     ANALYZING = "ANALYZING"
     GENERATING_PROTOCOL = "GENERATING_PROTOCOL"
     GENERATING_REPORT = "GENERATING_REPORT"
-    GENERATING_AFTER_PHOTO = "GENERATING_AFTER_PHOTO"
     COMPLETED = "COMPLETED"
     FAILED_PROTOCOL_RENDER = "FAILED_PROTOCOL_RENDER"
     FAILED = "FAILED"
@@ -322,15 +321,6 @@ class AnalysisRequest(Base, TimestampMixin):
     personal_insight_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     legacy_protocol_image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     legacy_protocol_image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    after_photo_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    after_photo_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    after_photo_plan: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    after_photo_variants: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
-    after_photo_variant_paths: Mapped[list[str]] = mapped_column(JSON, default=list)
-    after_photo_final_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    after_photo_quality_results: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
-    after_photo_used_intensity: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    after_photo_retry_count: Mapped[int] = mapped_column(Integer, default=0)
     analysis_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     report_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     moderation_status: Mapped[str] = mapped_column(String(64), default="published")
@@ -456,7 +446,6 @@ class BotSettings(Base, TimestampMixin):
     instagram_url: Mapped[str | None] = mapped_column(String(700), nullable=True)
     whatsapp_url: Mapped[str | None] = mapped_column(String(700), nullable=True)
     telegram_url: Mapped[str | None] = mapped_column(String(700), nullable=True)
-    after_photo_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     manual_moderation_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     regeneration_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     analysis_limit_per_user: Mapped[int] = mapped_column(Integer, default=3)

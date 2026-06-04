@@ -4,8 +4,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.ai.prompts import (
-    AFTER_PHOTO_NEGATIVE_PROMPT,
-    AFTER_PHOTO_PROMPT,
     DEFAULT_ANALYSIS_SYSTEM_PROMPT,
     DISCLAIMER,
     PROTOCOL_PROMPT,
@@ -114,8 +112,6 @@ def seed() -> None:
                 f"{PROTOCOL_SLIDE_COPY_SYSTEM_PROMPT}\n\n{PROTOCOL_SLIDE_COPY_USER_PROMPT}",
             ),
             ("detailed_report", "Prompt подробного отчета", REPORT_PROMPT),
-            ("after_photo", "Prompt after-photo", AFTER_PHOTO_PROMPT),
-            ("after_photo_negative", "Negative prompt after-photo", AFTER_PHOTO_NEGATIVE_PROMPT),
             ("bot_tone", "Тон коммуникации бота", "Теплый, экспертный, бережный, без давления и медицинских диагнозов."),
             ("disclaimer", "Disclaimer", DISCLAIMER),
         ]
@@ -160,7 +156,6 @@ def seed() -> None:
                     instagram_url="",
                     whatsapp_url="",
                     telegram_url="",
-                    after_photo_enabled=False,
                     manual_moderation_enabled=False,
                     regeneration_enabled=True,
                     analysis_limit_per_user=100,
@@ -172,13 +167,6 @@ def seed() -> None:
                         "timeout": settings.ai_timeout_seconds,
                         "queue_concurrency": settings.queue_concurrency,
                         "enable_gemini_fallback": settings.enable_gemini_fallback,
-                        "enable_after_photo": False,
-                        "after_photo_pipeline": "universal_prompt_v1",
-                        "after_photo_provider": settings.after_photo_provider,
-                        "after_photo_image_model": settings.openai_after_photo_image_model if settings.after_photo_provider == "openai" else settings.replicate_flux_model,
-                        "after_photo_default_intensity": settings.after_photo_default_intensity,
-                        "after_photo_variant_count": settings.after_photo_variant_count,
-                        "after_photo_retry_count": settings.after_photo_retry_count,
                     },
                 )
             )

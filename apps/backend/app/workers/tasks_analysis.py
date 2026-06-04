@@ -15,7 +15,7 @@ from app.ai.openai_client import build_personal_insights_from_analysis
 from app.ai.prompts import load_default_system_prompt
 from app.ai.providers import analyze_face_with_fallback
 from app.ai.schemas import FaceAnalysis
-from app.core.config import AFTER_PHOTO_DISABLED_REASON, after_photo_feature_enabled, settings
+from app.core.config import settings
 from app.db.crm import add_lead_event
 from app.db.models import (
     AiJobLog,
@@ -42,14 +42,6 @@ FACE_PROTOCOL_HEIGHT = 1200
 FACE_ZONE_PROTOCOL_WIDTH = 1184
 FACE_ZONE_PROTOCOL_HEIGHT = 1980
 
-AFTER_PHOTO_READY_STATUSES = {"APPROVED", "COMPLETED"}
-AFTER_PHOTO_TERMINAL_STATUSES = {
-    "APPROVED",
-    "COMPLETED",
-    "FAILED",
-    "SKIPPED_NO_API_KEY",
-    "NEEDS_MANUAL_REVIEW",
-}
 PIPELINE_LOCK_SECONDS = max(900, settings.ai_timeout_seconds * 4)
 
 
@@ -273,70 +265,6 @@ def regenerate_face_protocol_png_sync(db: Session, analysis: AnalysisRequest) ->
     return zone_png_abs
 
 
-def _wait_for_after_photo_for_protocol(db: Session, analysis: AnalysisRequest, *, started: bool) -> dict:
-    if not started:
-        return {"waited": False, "reason": "not_started", "status": analysis.after_photo_status}
-
-    _enqueue_progress_update(analysis.id, "after_photo")
-    timeout_seconds = max(1, int(settings.after_photo_timeout_seconds or 300))
-    poll_interval = 2.0
-    wait_started = time.perf_counter()
-    log_job(
-        db,
-        analysis.id,
-        "after_photo_wait",
-        "started",
-        "Waiting for after-photo before rendering photo protocol",
-        {"timeoutSeconds": timeout_seconds},
-    )
-
-    while True:
-        db.refresh(analysis)
-        status = analysis.after_photo_status
-        if status in AFTER_PHOTO_READY_STATUSES and analysis.after_photo_final_path:
-            final_abs = local_storage.abs_path(analysis.after_photo_final_path)
-            if Path(final_abs).exists():
-                waited_ms = int((time.perf_counter() - wait_started) * 1000)
-                result = {
-                    "waited": True,
-                    "status": status,
-                    "afterPhotoPath": analysis.after_photo_final_path,
-                    "waitTimeMs": waited_ms,
-                    "embedded": True,
-                }
-                log_job(db, analysis.id, "after_photo_wait", "success", "After-photo ready for embedded protocol", result)
-                return result
-            log_job(
-                db,
-                analysis.id,
-                "after_photo_wait",
-                "failed",
-                "Approved after-photo file was not found before protocol render",
-                {"status": status, "afterPhotoPath": analysis.after_photo_final_path},
-            )
-            return {"waited": True, "status": status, "embedded": False, "reason": "file_missing"}
-
-        if status in AFTER_PHOTO_TERMINAL_STATUSES:
-            waited_ms = int((time.perf_counter() - wait_started) * 1000)
-            result = {"waited": True, "status": status, "waitTimeMs": waited_ms, "embedded": False}
-            log_job(db, analysis.id, "after_photo_wait", "terminal_without_image", "After-photo finished without approved image", result)
-            return result
-
-        elapsed = time.perf_counter() - wait_started
-        if elapsed >= timeout_seconds:
-            result = {
-                "waited": True,
-                "status": status or "PENDING",
-                "waitTimeMs": int(elapsed * 1000),
-                "embedded": False,
-                "reason": "timeout",
-            }
-            log_job(db, analysis.id, "after_photo_wait", "timeout", "After-photo was not ready before protocol render", result)
-            return result
-
-        time.sleep(poll_interval)
-
-
 def _run_analysis_pipeline(analysis_id: int) -> None:
     db = SessionLocal()
     analysis: AnalysisRequest | None = None
@@ -347,7 +275,6 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
     analysis_time_ms = 0
     report_build_time_ms = 0
     telegram_send_time_ms = 0
-    after_photo_started = False
     try:
         analysis = db.query(AnalysisRequest).filter(AnalysisRequest.id == analysis_id).first()
         if not analysis:
@@ -408,20 +335,6 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
         _enqueue_progress_update(analysis.id, "analysis")
 
         photo_abs = local_storage.abs_path(analysis.original_photo_path)
-        if bot_settings.after_photo_enabled and after_photo_feature_enabled():
-            from app.workers.tasks_after_photo import enqueue_after_photo
-
-            enqueue_after_photo(analysis.id, run_sync_fallback=False)
-            after_photo_started = True
-        else:
-            analysis.after_photo_status = "DISABLED"
-            analysis.after_photo_path = None
-            analysis.after_photo_final_path = None
-            analysis.after_photo_variant_paths = []
-            analysis.after_photo_variants = []
-            analysis.after_photo_quality_results = []
-            analysis.after_photo_plan = {"disabled": True, "reason": AFTER_PHOTO_DISABLED_REASON}
-            log_job(db, analysis.id, "after_photo", "skipped", AFTER_PHOTO_DISABLED_REASON)
 
         knowledge_context = retrieve_context(db, analysis.selected_problems or [])
         system_prompt = get_prompt(db, "analysis_system", load_default_system_prompt())
@@ -506,12 +419,6 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
                 analysis.protocol_version = "final_v1"
                 db.commit()
                 log_job(db, analysis.id, "protocol_copy", "success", "Protocol copy JSON built locally", {"source": "backend_template"})
-            after_photo_wait_result = {
-                "waited": False,
-                "embedded": False,
-                "reason": "first_protocol_disabled",
-                "status": analysis.after_photo_status,
-            }
             _enqueue_progress_update(analysis.id, "render")
             protocol_png_abs = None
             if analysis.face_protocol_image_path:
@@ -525,9 +432,9 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
                 db,
                 analysis.id,
                 "face_zone_protocol_v1",
-                "rendered_without_after_photo",
-                "Journal zone protocol rendered; first protocol generation is disabled",
-                after_photo_wait_result,
+                "success",
+                "Journal zone protocol rendered",
+                {"renderer": "face_zone_protocol", "protocol_version": "final_v1"},
             )
         except Exception as exc:
             logger.error("Face protocol render failed", exc_info=True)
@@ -629,7 +536,6 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
                 "analysisTimeMs": analysis_time_ms,
                 "imageProvider": settings.ai_image_provider,
                 "imageTimeMs": None,
-                "afterPhotoStarted": after_photo_started,
                 "reportBuildTimeMs": report_build_time_ms,
                 "telegramSendTimeMs": telegram_send_time_ms,
                 "success": True,
@@ -665,7 +571,6 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
                 "analysisTimeMs": analysis_time_ms,
                 "imageProvider": settings.ai_image_provider,
                 "imageTimeMs": None,
-                "afterPhotoStarted": after_photo_started,
                 "reportBuildTimeMs": report_build_time_ms,
                 "telegramSendTimeMs": telegram_send_time_ms,
                 "success": False,

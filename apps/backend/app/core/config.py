@@ -45,9 +45,6 @@ class Settings(BaseSettings):
     openai_report_model: str | None = None
     openai_protocol_copy_model: str | None = None
     openai_protocol_image_model: str | None = None
-    openai_after_photo_image_model: str | None = None
-    openai_after_photo_image_quality: str = "medium"
-    openai_after_photo_image_size: str = "1024x1536"
     openai_vision_qa_model: str | None = None
 
     gemini_api_key: str | None = None
@@ -80,24 +77,9 @@ class Settings(BaseSettings):
     ai_force_mock: bool = False
     ai_accept_best_effort: bool = True
     enable_gemini_fallback: bool = True
-    enable_after_photo: bool = False
     face_protocol_version: str = "final_v1"
     protocol_single_image: bool = False
     protocol_image_provider: str = "openai"
-    after_photo_variants: int = 3
-    after_photo_variant_count: int = 3
-    after_photo_provider: str = "replicate"
-    after_photo_default_intensity: str = "balanced"
-    after_photo_strength: float = 0.20
-    after_photo_subtle_strength: float = 0.16
-    after_photo_balanced_strength: float = 0.20
-    after_photo_visible_strength: float = 0.30
-    after_photo_guidance: float = 3.5
-    after_photo_original_weight: float = 0.80
-    after_photo_retry_count: int = 1
-    after_photo_timeout_seconds: int = 300
-    after_photo_min_visible_diff: float = 2.0
-    after_photo_accept_best_effort: bool = False
     mediapipe_face_landmarker_model_path: str | None = None
 
     def storage_root(self) -> Path:
@@ -119,14 +101,6 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-
-
-AFTER_PHOTO_FEATURE_ENABLED = False
-AFTER_PHOTO_DISABLED_REASON = "After-photo disabled for MVP launch"
-
-
-def after_photo_feature_enabled() -> bool:
-    return AFTER_PHOTO_FEATURE_ENABLED and settings.enable_after_photo
 
 
 def _is_local_url(value: str | None) -> bool:

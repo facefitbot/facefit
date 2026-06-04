@@ -7,7 +7,6 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.core.config import settings
 
-AFTER_VISUAL_DELAY_SECONDS = 60
 OFFER_DELAY_SECONDS = 30 * 60
 BONUS_DELAY_SECONDS = 24 * 60 * 60
 
@@ -58,20 +57,14 @@ def problems_prompt_text(name: str | None) -> str:
 
 
 def protocol_ready_caption() -> str:
-    return "Готово! Вот твой персональный протокол лица"
+    return (
+        "Готово! Вот твой персональный протокол лица.\n\n"
+        "Подробный web-отчет с расшифровкой и рекомендациями — по кнопке ниже."
+    )
 
 
 def zone_protocol_caption() -> str:
     return "Карта зон лица с персональными акцентами."
-
-
-def after_visual_text(name: str | None) -> str:
-    return (
-        f"{first_name(name)}, посмотри, вот такую подтяжку зон ты можешь сделать с помощью фейс-фитнеса за 30 дней.\n\n"
-        "Первые изменения ты увидишь уже через две недели. За два месяца регулярных занятий по 20 минут в день "
-        "ты можешь заметно подтянуть лицо.\n\n"
-        "Хочешь попробовать тренировку от Беллы? Тоже абсолютно бесплатно."
-    )
 
 
 def training_text() -> str:
@@ -202,15 +195,6 @@ def case_media_paths() -> list[str]:
         if path.exists():
             paths.append(str(path))
     return paths[:3]
-
-
-def after_visual_keyboard(analysis_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Да, хочу тренировку", callback_data=f"funnel:training:{analysis_id}")],
-            [InlineKeyboardButton(text="Расскажи подробнее о курсе", callback_data=f"funnel:course_more:{analysis_id}")],
-        ]
-    )
 
 
 def offer_keyboard(analysis_id: int) -> InlineKeyboardMarkup:

@@ -96,28 +96,6 @@ services:
     volumes:
       - backend_storage:/app/storage
 
-  worker_after_photo:
-    profiles:
-      - after-photo
-    build:
-      context: ./apps/backend
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/bella_vladi_bot
-      REDIS_URL: redis://redis:6379/0
-      LOCAL_STORAGE_PATH: /app/storage
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5173}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-    command: sh -c "celery -A app.workers.celery_app worker --loglevel=info -Q after_photo --concurrency=$${AFTER_PHOTO_WORKER_CONCURRENCY:-1} --hostname=after-photo@%h"
-    depends_on:
-      - backend
-      - redis
-    volumes:
-      - backend_storage:/app/storage
-
   worker_telegram:
     build:
       context: ./apps/backend
