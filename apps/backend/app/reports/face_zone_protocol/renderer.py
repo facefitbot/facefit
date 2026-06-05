@@ -1064,7 +1064,7 @@ def build_face_zone_protocol_data(
             "title": "Как лицо может меняться со временем",
             "description": _limit(
                 future_changes_text,
-                330,
+                430,
                 "",
             ),
             "subtitle": "Механика:",
@@ -1330,30 +1330,35 @@ def _component_phrase(component_id: str) -> str:
 
 
 def _png_aging_description(type_id: str, component_ids: list[str], focus_phrase: str, strict_text: Any) -> str:
-    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
+    # Deterministic (no AI "hint" tail — it duplicated the type name). Scenario names come from
+    # the same build_aging_type_display_name as the 04 title, so body and title never disagree.
+    photo = f"По фото главный фокус: {focus_phrase}."
     if type_id == "tired_mixed" and component_ids:
         canonical_components = _canonical_component_ids(component_ids)[:2]
-        names = _component_names(canonical_components)
+        display_name = build_aging_type_display_name(type_id, component_ids)
+        scenarios = display_name.split(": ", 1)[1] if ": " in display_name else display_name
         components = "; ".join(_component_phrase(item) for item in canonical_components)
-        base = f"Это сочетание двух сценариев: {' + '.join(names[:2])}. По базе здесь сочетаются: {components}."
-        photo = f"По фото главный фокус: {focus_phrase}."
-        return _limit(" ".join([base, photo, ai_hint]), 300, base)
+        base = f"Это сочетание двух сценариев: {scenarios}. По базе здесь сочетаются: {components}."
+        return _limit(" ".join([base, photo]), 300, base)
     base = _knowledge_text(type_id, "what_inside", max_sentences=2)
-    photo = f"По фото главный фокус: {focus_phrase}."
-    return _limit(" ".join([base, photo, ai_hint]), 300, base)
+    return _limit(" ".join([base, photo]), 300, base)
 
 
 def _png_future_description(type_id: str, component_ids: list[str], focus_phrase: str, strict_text: Any) -> str:
-    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
+    # Rich, deterministic paragraph (no thin AI hint): how the face changes over time + what
+    # happens without work + a reassuring close. Fills block 05 like the reference.
     if type_id == "tired_mixed" and component_ids:
-        parts = [_knowledge_text(item, "how_changes_over_time", max_sentences=1) for item in _canonical_component_ids(component_ids)[:2]]
-        base = " ".join(part for part in parts if part)
-        if not base:
-            base = _knowledge_text("tired_mixed", "how_changes_over_time", max_sentences=2)
+        primary = _canonical_component_ids(component_ids)[:1]
+        primary_id = primary[0] if primary else "tired_mixed"
+        changes = _knowledge_text(primary_id, "how_changes_over_time", max_sentences=2) or _knowledge_text(
+            "tired_mixed", "how_changes_over_time", max_sentences=2
+        )
+        escalation = _knowledge_text(primary_id, "what_if_nothing_changes", max_sentences=1)
     else:
-        base = _knowledge_text(type_id, "how_changes_over_time", max_sentences=2)
-    finish = f"Сейчас важно поддержать {focus_phrase}, пока изменения мягкие и хорошо отвечают на регулярную работу."
-    return _limit(" ".join([base, ai_hint, finish]), 330, base)
+        changes = _knowledge_text(type_id, "how_changes_over_time", max_sentences=2)
+        escalation = _knowledge_text(type_id, "what_if_nothing_changes", max_sentences=1)
+    close = "Но это не повод для беспокойства, а лишь сигнал к мягкой регулярной работе."
+    return _limit(" ".join(part for part in [changes, escalation, close] if part), 430, changes or close)
 
 
 def _age_band_labels(client_age: int) -> list[str]:
@@ -1786,7 +1791,7 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     merged["zone_map"] = {"zones": _v3_template_zones(zone_map), "contours": zone_map.get("contours") or {}, "quality": zone_map.get("quality") or {}}
     # 05 = qualitative "what changes over time"; 06 = age-relative bands (kept distinct).
     merged["block_05_why"] = {
-        "text": _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
+        "text": _png_block_text(why.get("description") or _full_text("future_changes"), 430, ""),
         "reasons": compact["future_changes"]["bullets"],
     }
     merged["block_06_age_changes"] = {
@@ -1811,7 +1816,7 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
             230,
             "",
         ),
-        "items": _compact_list(compact["face_fitness_benefits"]["bullets"], [], limit=3, max_chars=68),
+        "items": _compact_list(compact["face_fitness_benefits"]["bullets"], [], limit=3, max_chars=110),
     }
     merged["block_08_timeline"] = {
         "intro": compact["time_forecast"]["basis"] + ":",
@@ -1822,7 +1827,15 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     }
     merged["growth_areas"] = _v3_growth_areas(data)
     merged["growth_text"] = compact["growth_zones"]["summary"]
-    merged["final_summary"] = _png_block_text(_full_text("final_summary", compact["final_summary"]["text"]), 260, "")
+    final_text = _png_block_text(_full_text("final_summary", compact["final_summary"]["text"]), 340, "")
+    if len(final_text) < 130:
+        # AI returned only a one-line opener — add the reference's "что дальше" close so Итог reads full.
+        opener = (final_text.rstrip(" .") + ". ") if final_text else ""
+        final_text = opener + (
+            "Главное сейчас — мягко поддержать свежесть и тонус, чтобы раскрыть твою природную "
+            "красоту и сохранить её надолго. Именно для этого создан этот курс."
+        )
+    merged["final_summary"] = final_text
     merged["tagline"] = compact["final_summary"]["quote"]
     return merged
 
