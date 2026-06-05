@@ -514,7 +514,7 @@ button{font:inherit;cursor:pointer;border:0;background:transparent;color:inherit
   background:var(--ivory);
 }
 .topbar .row{
-  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  display:flex;align-items:center;justify-content:center;gap:24px;
 }
 .brand{display:flex;align-items:center;gap:14px}
 .brand .mark{
@@ -1264,6 +1264,24 @@ footer{
     </div>
   </section>
 
+  <!-- ═══════════ 4.5 · PROFILE (optional) ═══════════ -->
+  <section id="profile" data-chap="profile" data-slot="profile-section" style="display:none">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow"><span class="num">·</span><span>Профиль</span></div>
+        <h2 class="h2" data-slot="profile-title">Профиль · овал и шея</h2>
+        <p class="lead" data-slot="profile-summary"></p>
+      </div>
+      <div class="map-grid">
+        <div class="zm-photo">
+          <img data-protocol-image="" data-slot="profile-img" alt="Фото в профиль">
+          <div class="fallback" data-slot="profile-fb"><div class="ttl">Профиль</div><div>Фото загружается</div></div>
+        </div>
+        <div class="zm-side" data-slot="profile-cards"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══════════ 5 · BENEFITS ═══════════ -->
   <section id="benefits" data-chap="benefits">
     <div class="wrap">
@@ -1287,7 +1305,7 @@ footer{
       <div class="early-grid" data-slot="early-grid"></div>
 
       <div class="sec-head" style="margin-top:8px">
-        <div class="eyebrow"><span class="num">07</span><span>Со временем</span></div>
+        <div class="eyebrow"><span>Со временем</span></div>
         <h2 class="h2" data-slot="future-title"></h2>
       </div>
       <div class="scenarios">
@@ -1303,9 +1321,9 @@ footer{
         </div>
       </div>
 
-      <!-- 7 · AGE FORECAST (slot of same section, sub-block) -->
+      <!-- AGE FORECAST (slot of same section, sub-block) -->
       <div class="sec-head" style="margin-top:8px">
-        <div class="eyebrow"><span class="num">08</span><span>Ближайшие годы</span></div>
+        <div class="eyebrow"><span>Ближайшие годы</span></div>
         <h2 class="h2">Ваш <em>прогноз</em> на ближайшие годы</h2>
       </div>
       <div class="forecast-personal">
@@ -1320,7 +1338,7 @@ footer{
   <section id="details" data-chap="details">
     <div class="wrap">
       <div class="sec-head">
-        <div class="eyebrow"><span class="num">09</span><span>Персональный план</span></div>
+        <div class="eyebrow"><span class="num">07</span><span>Персональный план</span></div>
         <h2 class="h2">Что делать <em>именно вам</em></h2>
         <p class="lead">Коротко и понятно: что видно по фото, почему это важно и какой результат должен дать курс.</p>
       </div>
@@ -1512,7 +1530,7 @@ const CHAPTERS = [
   { id:"map",           num:"04", label:"Карта" },
   { id:"benefits",      num:"05", label:"Курс" },
   { id:"future",        num:"06", label:"Прогноз" },
-  { id:"details",       num:"09", label:"План" },
+  { id:"details",       num:"07", label:"План" },
   { id:"final",         num:"·",  label:"Итог" }
 ];
 
@@ -1712,6 +1730,31 @@ function renderZoneMap(data){
 }
 
 // ════════════════════════════════════════════════════════════════════
+// 4.5 · PROFILE (optional side photo)
+// ════════════════════════════════════════════════════════════════════
+function renderProfile(data){
+  const section = $('[data-slot="profile-section"]');
+  const p = data.profile;
+  if (!p || !p.image_url){ if (section) section.style.display = "none"; return; }
+  if (section) section.style.display = "";
+  setText("profile-title", p.title || "Профиль · овал и шея");
+  setText("profile-summary", p.summary || "");
+  setImage($('[data-slot="profile-img"]'), p.image_url, $('[data-slot="profile-fb"]'), null);
+  setProtocolCropMode($('[data-slot="profile-img"]'), "protocol_crop");
+  const host = $('[data-slot="profile-cards"]');
+  host.innerHTML = "";
+  [["Линия челюсти и овал", p.jawline, "shape"], ["Подбородок и шея", p.chin_neck, "drop"]].forEach(([title, text, ico]) => {
+    if (!text) return;
+    const card = el("div","card");
+    const icon = el("div","icon"); icon.innerHTML = ICONS[ico] || ICONS.sparkle;
+    card.appendChild(icon);
+    card.appendChild(el("h3","", title));
+    card.appendChild(el("p","", text));
+    host.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
 // 5 · BENEFITS
 // ════════════════════════════════════════════════════════════════════
 function renderBenefits(data){
@@ -1841,6 +1884,7 @@ function renderReport(data){
   renderMainFocus(data);
   renderPotential(data);
   renderZoneMap(data);
+  renderProfile(data);
   renderBenefits(data);
   renderFuture(data);
   renderDetails(data);
