@@ -654,7 +654,15 @@ def _zone_map_crop_url(protocol_image_path: str | None) -> str:
     source = Path(local_storage.abs_path(protocol_image_path))
     if not source.exists():
         return ""
-    target = source.with_name(f"{source.stem}_zone_map_photo_crop_v3{source.suffix}")
+    # Preferred: the standalone face-map element screenshot the protocol renderer
+    # saves alongside the page (face + colored zones + numbers, framed exactly as
+    # in the PNG protocol). This is robust for any photo — no pixel guessing.
+    element_shot = source.with_name(f"{source.stem}_zone_map_photo{source.suffix}")
+    if element_shot.exists():
+        return _asset_url(str(element_shot.relative_to(local_storage.root)))
+    # Fallback for protocols rendered before the element screenshot existed:
+    # crop the face-map region out of the composed PNG by fixed proportions.
+    target = source.with_name(f"{source.stem}_zone_map_photo_crop_v5{source.suffix}")
     if target.exists() and target.stat().st_mtime >= source.stat().st_mtime:
         return _asset_url(str(target.relative_to(local_storage.root)))
     try:
@@ -662,11 +670,18 @@ def _zone_map_crop_url(protocol_image_path: str | None) -> str:
             width, height = image.size
             # The web report must reuse the exact face-map photo from the short
             # PNG protocol: same face crop, colored zones and black numbers.
+            # The protocol PNG is always rendered at a fixed width (~1100px),
+            # while its total height varies with the amount of text. The face-map
+            # block sits at a fixed position driven by that width, so derive ALL
+            # bounds from `width` (not `height`) — otherwise the crop drifts on
+            # taller/shorter reports and slices off the top of the head or the
+            # legend/zone-table underneath. Tuned to the full head down to just
+            # above the legend.
             box = (
-                max(0, int(width * 0.353)),
-                max(0, int(height * 0.155)),
-                min(width, int(width * 0.647)),
-                min(height, int(height * 0.348)),
+                max(0, int(width * 0.340)),
+                max(0, int(width * 0.243)),
+                min(width, int(width * 0.660)),
+                min(height, int(width * 0.560)),
             )
             crop = image.crop(box)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -1000,6 +1015,21 @@ def build_bella_web_report_v6_view_model(
     zone_map_image_mode = "protocol_crop" if zone_map_crop_url else "overlay"
     zone_map_source = "png_protocol_zone_map_crop" if zone_map_crop_url else "photo_protocol_zone_overlay"
 
+    # Optional side-profile photo + its AI read-out (jaw / oval / chin / neck).
+    profile_block = _dict(source_analysis_json.get("profile"))
+    profile_photo_url = _asset_url(analysis.profile_photo_path) if analysis and analysis.profile_photo_path else ""
+    profile_view = (
+        {
+            "title": "Профиль · овал и шея",
+            "image_url": profile_photo_url,
+            "summary": simplify_report_language(profile_block.get("summary") or "", limit=400),
+            "jawline": simplify_report_language(profile_block.get("jawline") or "", limit=400),
+            "chin_neck": simplify_report_language(profile_block.get("chin_neck") or "", limit=400),
+        }
+        if (profile_photo_url and profile_block.get("usable"))
+        else None
+    )
+
     view_model: dict[str, Any] = {
         "report_version": WEB_REPORT_V6_VERSION,
         "web_report_version": WEB_REPORT_V6_VERSION,
@@ -1010,6 +1040,7 @@ def build_bella_web_report_v6_view_model(
             "face_protocol_image_url": face_protocol_url,
             "zone_map_image_url": zone_map_photo_url,
             "zone_map_photo_url": zone_map_photo_url,
+            "profile_photo_url": profile_photo_url,
             "face_object_position": _dict(protocol.get("images")).get("face_object_position") or WEB_MAP_OBJECT_POSITION,
         },
         "hero": {
@@ -1052,6 +1083,7 @@ def build_bella_web_report_v6_view_model(
             "legend": {"good": "Все хорошо", "attention": "Зона внимания", "priority": "Приоритет"},
             "zones": canonical_zones,
         },
+        "profile": profile_view,
         "benefits": {"title": "Что фейсфитнес даст именно вам", "items": deduped_benefits},
         "early_changes": {
             "title": "Что вы можете заметить первым",

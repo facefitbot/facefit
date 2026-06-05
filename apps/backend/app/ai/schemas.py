@@ -311,6 +311,20 @@ class AgingTypeBlock(BaseModel):
     main_focus: str = ""
 
 
+class ProfileAnalysis(BaseModel):
+    """Read-out of the OPTIONAL side-profile photo (jaw / oval / chin / neck).
+
+    ``usable`` is set by the vision model: false when no profile photo was sent, the
+    second image is not a side profile, or it is a different person. When false the
+    report omits the profile section entirely.
+    """
+
+    usable: bool = False
+    summary: str = ""
+    jawline: str = ""
+    chin_neck: str = ""
+
+
 class FaceAnalysis(BaseModel):
     skin_visual_age: SkinVisualAge
     skin_type: SkinType
@@ -327,6 +341,7 @@ class FaceAnalysis(BaseModel):
     aging_classification: AgingClassification | None = None
     face_features: FaceFeatures | None = None
     aging_type_block: AgingTypeBlock | None = None
+    profile: ProfileAnalysis | None = None
 
     @model_validator(mode="before")
     @classmethod

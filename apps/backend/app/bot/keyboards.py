@@ -22,6 +22,14 @@ def consent_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def profile_skip_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Пропустить →", callback_data="profile:skip")],
+        ]
+    )
+
+
 def problems_keyboard(problem_catalog: list[dict[str, str]] | None = None, selected: set[str] | None = None) -> InlineKeyboardMarkup:
     selected = selected or set()
     rows = []

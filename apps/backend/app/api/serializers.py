@@ -474,6 +474,7 @@ def report_view_model(report: GeneratedReport, settings: BotSettings) -> dict[st
         ],
         "images": {
             "original_photo": _asset(analysis.original_photo_path if analysis else None),
+            "profile_photo": _asset(analysis.profile_photo_path if analysis else None),
             "face_protocol": _asset(protocol_path),
         },
         "cta": {
@@ -531,6 +532,7 @@ def analysis_dict(analysis: AnalysisRequest, compact: bool = False) -> dict:
         "status": analysis.status,
         "selected_problems": analysis.selected_problems or [],
         "original_photo_path": _media_url(analysis.original_photo_path),
+        "profile_photo_path": _media_url(analysis.profile_photo_path),
         "protocol_image_path": _media_url(analysis.protocol_image_path),
         "protocol_image_url": analysis.protocol_image_url,
         "protocol_version": analysis.protocol_version,

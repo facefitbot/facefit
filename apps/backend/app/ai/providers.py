@@ -20,6 +20,7 @@ class TextVisionProvider(Protocol):
         knowledge_context: str,
         system_prompt: str,
         user_age: int | None = None,
+        profile_photo_path: str | None = None,
     ) -> dict[str, Any]:
         ...
 
@@ -44,8 +45,9 @@ class OpenAITextVisionProvider:
         knowledge_context: str,
         system_prompt: str,
         user_age: int | None = None,
+        profile_photo_path: str | None = None,
     ) -> dict[str, Any]:
-        return analyze_face(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age)
+        return analyze_face(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age, profile_photo_path=profile_photo_path)
 
 
 class GeminiTextVisionProvider:
@@ -59,8 +61,9 @@ class GeminiTextVisionProvider:
         knowledge_context: str,
         system_prompt: str,
         user_age: int | None = None,
+        profile_photo_path: str | None = None,
     ) -> dict[str, Any]:
-        return analyze_face_with_gemini(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age)
+        return analyze_face_with_gemini(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age, profile_photo_path=profile_photo_path)
 
 
 TEXT_PROVIDERS: dict[str, TextVisionProvider] = {
@@ -97,6 +100,7 @@ def analyze_face_with_fallback(
     knowledge_context: str,
     system_prompt: str,
     user_age: int | None = None,
+    profile_photo_path: str | None = None,
 ) -> ProviderResult:
     if settings.ai_force_mock:
         payload = _logged_v4_fallback_payload(
@@ -117,7 +121,7 @@ def analyze_face_with_fallback(
         provider = TEXT_PROVIDERS[provider_name]
         started = time.perf_counter()
         try:
-            payload = provider.analyze_face_photo(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age)
+            payload = provider.analyze_face_photo(photo_path, user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age, profile_photo_path=profile_photo_path)
             return ProviderResult(
                 provider=provider_name,
                 payload=payload,

@@ -335,6 +335,7 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
         _enqueue_progress_update(analysis.id, "analysis")
 
         photo_abs = local_storage.abs_path(analysis.original_photo_path)
+        profile_abs = local_storage.abs_path(analysis.profile_photo_path) if analysis.profile_photo_path else None
 
         knowledge_context = retrieve_context(db, analysis.selected_problems or [])
         system_prompt = get_prompt(db, "analysis_system", load_default_system_prompt())
@@ -352,6 +353,7 @@ def _run_analysis_pipeline(analysis_id: int) -> None:
                 knowledge_context,
                 system_prompt,
                 user_age=analysis.lead.age if analysis.lead else None,
+                profile_photo_path=profile_abs,
             )
             payload = analysis_result.payload
             analysis_provider = analysis_result.provider

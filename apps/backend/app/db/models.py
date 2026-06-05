@@ -310,6 +310,7 @@ class AnalysisRequest(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(64), default=AnalysisStatus.WAITING_FOR_PHOTO, index=True)
     selected_problems: Mapped[list[str]] = mapped_column(JSON, default=list)
     original_photo_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    profile_photo_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     protocol_image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     protocol_image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     protocol_version: Mapped[str | None] = mapped_column(String(32), nullable=True)

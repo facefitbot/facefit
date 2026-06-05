@@ -20,6 +20,7 @@ from app.ai.prompts import (
     REPORT_PROMPT,
     build_analysis_system_prompt,
     build_analysis_user_prompt,
+    build_profile_image_instruction,
 )
 from app.ai.protocol_v4 import ProtocolValidationError
 from app.ai.schemas import normalize_analysis_payload, validate_and_sanitize_protocol
@@ -294,6 +295,7 @@ def analyze_face(
     knowledge_context: str,
     system_prompt: str,
     user_age: int | None = None,
+    profile_photo_path: str | None = None,
 ) -> dict[str, Any]:
     if settings.ai_force_mock or not settings.openai_api_key:
         raise RuntimeError("AI text generation requires OpenAI API key and AI_FORCE_MOCK=false")
@@ -302,6 +304,13 @@ def analyze_face(
     model = settings.openai_analysis_model or settings.openai_report_model or "gpt-5.5"
     system_content = build_analysis_system_prompt(system_prompt)
     user_text = build_analysis_user_prompt(user_name, selected_problems, knowledge_context, system_prompt, user_age=user_age)
+    user_content: list[dict[str, Any]] = [
+        {"type": "text", "text": user_text},
+        {"type": "image_url", "image_url": {"url": _image_to_data_url(photo_path)}},
+    ]
+    if profile_photo_path:
+        user_content[0]["text"] = f"{user_text}\n\n{build_profile_image_instruction()}"
+        user_content.append({"type": "image_url", "image_url": {"url": _image_to_data_url(profile_photo_path)}})
     response = _chat_completion_with_temperature_fallback(
         client,
         model=model,
@@ -309,13 +318,7 @@ def analyze_face(
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": system_content},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_text},
-                    {"type": "image_url", "image_url": {"url": _image_to_data_url(photo_path)}},
-                ],
-            },
+            {"role": "user", "content": user_content},
         ],
     )
     raw = response.choices[0].message.content or "{}"

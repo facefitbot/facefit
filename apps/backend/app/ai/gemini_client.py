@@ -14,7 +14,7 @@ from PIL import Image, ImageOps
 
 from app.core.config import settings
 from app.ai.json_repair import parse_json_safely
-from app.ai.prompts import build_analysis_system_prompt, build_analysis_user_prompt
+from app.ai.prompts import build_analysis_system_prompt, build_analysis_user_prompt, build_profile_image_instruction
 from app.ai.protocol_v4 import ProtocolValidationError
 from app.ai.schemas import normalize_analysis_payload, validate_and_sanitize_protocol
 
@@ -53,15 +53,15 @@ def _validation_errors(exc: Exception) -> list[str]:
     return [str(exc)]
 
 
-def _gemini_generate_json(model: str, prompt: str, photo_path: str) -> str:
+def _gemini_generate_json(model: str, prompt: str, photo_path: str, profile_photo_path: str | None = None) -> str:
+    parts: list[dict[str, Any]] = [{"text": prompt}, _read_image_part(photo_path)]
+    if profile_photo_path:
+        parts.append(_read_image_part(profile_photo_path))
     payload = {
         "contents": [
             {
                 "role": "user",
-                "parts": [
-                    {"text": prompt},
-                    _read_image_part(photo_path),
-                ],
+                "parts": parts,
             }
         ],
         "generationConfig": {
@@ -97,24 +97,26 @@ def analyze_face_with_gemini(
     knowledge_context: str = "",
     system_prompt: str | None = None,
     user_age: int | None = None,
+    profile_photo_path: str | None = None,
 ) -> dict[str, Any]:
     model = (settings.ai_analysis_model or settings.gemini_model or "gemini-2.5-flash-lite").removeprefix("models/")
     if not settings.gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY is missing")
-    prompt = "\n\n".join(
-        [
-            build_analysis_system_prompt(system_prompt or ""),
-            build_analysis_user_prompt(
-                user_name,
-                selected_problems or [],
-                knowledge_context,
-                system_prompt or "",
-                user_age=user_age,
-            ),
-        ]
-    )
+    prompt_parts = [
+        build_analysis_system_prompt(system_prompt or ""),
+        build_analysis_user_prompt(
+            user_name,
+            selected_problems or [],
+            knowledge_context,
+            system_prompt or "",
+            user_age=user_age,
+        ),
+    ]
+    if profile_photo_path:
+        prompt_parts.append(build_profile_image_instruction())
+    prompt = "\n\n".join(prompt_parts)
 
-    raw = _gemini_generate_json(model, prompt, photo_path)
+    raw = _gemini_generate_json(model, prompt, photo_path, profile_photo_path)
     parsed_for_fallback: dict[str, Any] = {}
     try:
         result, parsed_for_fallback = _normalize_gemini_response(raw, user_age)
@@ -136,7 +138,7 @@ def analyze_face_with_gemini(
         + "\n\nПредыдущий JSON:\n"
         + raw[:12000]
     )
-    retry_raw = _gemini_generate_json(model, retry_prompt, photo_path)
+    retry_raw = _gemini_generate_json(model, retry_prompt, photo_path, profile_photo_path)
     try:
         result, parsed_for_fallback = _normalize_gemini_response(retry_raw, user_age)
         result["_validation_meta"] = {

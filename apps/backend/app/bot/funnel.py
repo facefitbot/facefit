@@ -48,6 +48,15 @@ def photo_instruction_text(name: str | None) -> str:
     )
 
 
+def profile_photo_prompt_text(name: str | None) -> str:
+    return (
+        f"{first_name(name)}, хочешь точнее? 🤍\n\n"
+        "Пришли ещё одно фото — <b>в профиль</b> (сбоку, голова повёрнута на 90°). "
+        "По нему видно овал, подбородок и линию шеи — именно там результат заметнее всего.\n\n"
+        "Это не обязательно: если не хочешь — нажми «Пропустить»."
+    )
+
+
 def problems_prompt_text(name: str | None) -> str:
     return (
         f"{first_name(name)}, ты красотка! ✨\n\n"

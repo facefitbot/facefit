@@ -183,6 +183,37 @@ def _cover_transform(
     return transform
 
 
+def _face_centered_object_position(
+    image_width: int,
+    image_height: int,
+    face_box: dict[str, Any] | None,
+    *,
+    container_width: float = 1.0,
+    container_height: float = 1.05,
+) -> str:
+    """Pick a vertical `object-position` that centers the detected face in the
+    cover-cropped frame, so the full face (forehead + chin) is always visible
+    regardless of how the photo is framed. Uses the same cover math as
+    `_cover_transform` so the zone overlay (fed the same value) stays aligned.
+    """
+    if not face_box:
+        return "50% 50%"
+    top = face_box.get("top")
+    bottom = face_box.get("bottom")
+    if top is None or bottom is None:
+        return "50% 50%"
+    image_ratio = image_width / max(1, image_height)
+    scale = max(container_width / max(image_ratio, 1e-6), container_height / 1.0)
+    rendered_h = 1.0 * scale
+    span = rendered_h - container_height
+    if span <= 0:
+        return "50% 50%"
+    face_center = (float(top) + float(bottom)) / 2.0
+    offset_y = face_center * rendered_h - container_height / 2.0
+    pos_y = min(max(offset_y / span, 0.0), 1.0)
+    return f"50% {round(pos_y * 100)}%"
+
+
 def _bbox(points: list[tuple[float, float]]) -> tuple[float, float, float, float]:
     xs = [point[0] for point in points]
     ys = [point[1] for point in points]
@@ -423,11 +454,54 @@ def validate_face_photo(photo_path: str | Path | None) -> dict[str, Any]:
     return geometry.get("quality") or _quality(False, geometry.get("reason") or "face_not_detected")
 
 
-def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position: str = "50% 42%") -> dict[str, Any]:
+def validate_profile_photo(photo_path: str | Path | None) -> dict[str, Any]:
+    """Loose validation for an OPTIONAL side-profile photo.
+
+    MediaPipe FaceMesh cannot read a true 90° profile (it needs both eyes/nose/mouth),
+    so we deliberately SKIP the frontal landmark/pose checks here and only reject obvious
+    garbage: missing/unreadable image, too small, or bad lighting. The vision model does
+    the real "is this a usable profile of the same person?" check during analysis.
+
+    Returns the same ``{ok, reason, message}`` shape as :func:`validate_face_photo` so the
+    bot handler can reuse the rejection UX.
+    """
+
+    def _bad(reason: str, message: str) -> dict[str, Any]:
+        return {"ok": False, "reason": reason, "message": message}
+
+    if not photo_path:
+        return _bad("missing_photo_path", "Фото не найдено. Пришлите фото в профиль заново.")
+    path = Path(photo_path)
+    if not path.exists():
+        return _bad("photo_not_found", "Фото не найдено. Пришлите фото в профиль заново.")
+    try:
+        import cv2
+        import numpy as np
+    except Exception:  # pragma: no cover - without cv2 we cannot inspect; let AI judge.
+        return {"ok": True, "reason": "ok", "message": "Фото в профиль принято."}
+    image = cv2.imread(str(path))
+    if image is None:
+        return _bad("image_read_failed", "Фото не удалось прочитать. Пришлите другое фото в профиль.")
+    height, width = image.shape[:2]
+    if width < 400 or height < 400:
+        return _bad("profile_too_small", "Фото в профиль слишком маленькое. Пришлите снимок покрупнее, сбоку.")
+    if _brightness_quality(image, cv2, np):
+        return _bad("profile_poor_light", "На фото в профиль мало света или контраста. Снимите при ровном дневном свете.")
+    if float(np.mean(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))) > 225:
+        return _bad("profile_overexposed", "Фото в профиль пересвечено. Пришлите снимок с более ровным светом.")
+    return {"ok": True, "reason": "ok", "message": "Фото в профиль принято."}
+
+
+def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position: str | None = None) -> dict[str, Any]:
     """Return zone anchors/shapes in template-percent coordinates using MediaPipe landmarks.
 
     The returned coordinates match the template's `object-fit: cover` photo frame, so
     markers stay aligned with the visible crop instead of the raw original image.
+
+    When ``object_position`` is ``None`` (the default), the vertical crop is computed
+    per-photo to center the detected face, so the top of the head is never sliced off
+    on tall portrait uploads. The resolved value is returned as ``object_position`` so
+    the caller can apply the exact same framing to the template ``<img>``.
     """
 
     if not photo_path:
@@ -450,7 +524,6 @@ def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position:
 
     height, width = image.shape[:2]
     brightness = _brightness_quality(image, cv2, np)
-    transform = _cover_transform(image_width=width, image_height=height, object_position=object_position)
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     model_path = os.getenv("MEDIAPIPE_FACE_LANDMARKER_MODEL_PATH")
     landmark_sets, backend, matrices = _detect_landmarks(mp, rgb, model_path)
@@ -465,6 +538,12 @@ def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position:
     first_landmark_set = landmark_sets[0]
     landmarks = first_landmark_set.landmark if hasattr(first_landmark_set, "landmark") else first_landmark_set
     face_box = _face_box_quality(landmarks)
+    # Frame the photo around the actual detected face (unless an explicit
+    # object-position was forced by the caller). The same value is returned below
+    # so the template <img> uses an identical crop and zones stay aligned.
+    if object_position is None:
+        object_position = _face_centered_object_position(width, height, face_box.get("face_box"))
+    transform = _cover_transform(image_width=width, image_height=height, object_position=object_position)
     pose = _estimate_pose_degrees(landmarks, width, height, cv2, np)
     quality_extra: dict[str, Any] = {
         "backend": backend,
@@ -615,6 +694,7 @@ def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position:
         "detected": quality_ok,
         "reason": quality_reason,
         "quality": _quality(quality_ok, quality_reason, **quality_extra),
+        "object_position": object_position,
         "image_width": width,
         "image_height": height,
         "contours": {
