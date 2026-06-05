@@ -162,22 +162,36 @@ body {
 }
 .card li:last-child { margin-bottom: 0; }
 
-/* ═══ 3-COLUMN GRID: face/map centered, analysis blocks around it ═══ */
+/* ═══ MAGAZINE GRID: map spans 2 rows (center), 06 spans 2 cols (bottom-left) ═══ */
+/* grid-template-areas + align-items:stretch make every card fill its cell, so
+   short reports leave NO empty zones (unlike independent flex columns). */
 .protocol-grid {
   display: grid;
-  grid-template-columns: 1fr 1.14fr 1fr;   /* center wider for the photo */
+  grid-template-columns: 0.98fr 1.06fr 0.98fr;   /* center wider for the photo */
+  grid-template-areas:
+    "bio        map        aging"
+    "skin       map        aging"
+    "strengths  why        benefits"
+    "age        age        timeline";
+  align-items: stretch;
   gap: 14px;
-  align-items: start;
   margin-bottom: 14px;
 }
+/* Wrappers become transparent; the cards inside are positioned purely by grid-area. */
 .col-left,
 .col-center,
 .col-right {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
+  display: contents;
 }
+#block-01 { grid-area: bio; }
+#block-02 { grid-area: skin; }
+#block-03 { grid-area: strengths; }
+#block-04 { grid-area: aging; }
+#block-05 { grid-area: why; }
+#block-06 { grid-area: age; }
+#block-07 { grid-area: benefits; }
+#block-08 { grid-area: timeline; }
+#zone-map-card { grid-area: map; }
 
 /* ═══ 01: BIO AGE ═══ */
 .age-number {
