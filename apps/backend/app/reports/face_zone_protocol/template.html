@@ -37,7 +37,7 @@ html { background: var(--bg); }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  font-size: 17px;
+  font-size: 21px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   padding: 0;
@@ -45,11 +45,11 @@ body {
 
 /* ═══ PAGE ═══ */
 .page {
-  max-width: 1100px;
+  max-width: 1480px;
   margin: 0 auto;
   background: var(--paper);
   min-height: auto;
-  padding: 22px 28px 20px;
+  padding: 22px 30px 16px;
 }
 
 /* ═══ HEADER ═══ */
@@ -117,7 +117,7 @@ body {
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
-  padding: 16px 18px 15px;
+  padding: 15px 17px 14px;
   box-shadow: var(--shadow);
   position: relative;
 }
@@ -125,7 +125,7 @@ body {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--accent);
   margin-bottom: 5px;
   line-height: 1;
@@ -133,7 +133,7 @@ body {
 .card-title {
   font-family: var(--sans);
   font-weight: 600;
-  font-size: 23.5px;
+  font-size: 27px;
   line-height: 1.2;
   color: var(--ink);
   margin-bottom: 9px;
@@ -146,7 +146,7 @@ body {
   position: relative;
   padding-left: 14px;
   margin-bottom: 6px;
-  font-size: 16.8px;
+  font-size: 21px;
   line-height: 1.42;
   color: var(--ink-soft);
 }
@@ -162,34 +162,21 @@ body {
 }
 .card li:last-child { margin-bottom: 0; }
 
-/* ═══ COMPACT GRID ═══ */
-.grid-top {
+/* ═══ 3-COLUMN GRID: face/map centered, analysis blocks around it ═══ */
+.protocol-grid {
   display: grid;
-  grid-template-columns: 0.98fr 1.08fr 0.98fr;
-  align-items: start;
+  grid-template-columns: 1fr 1.14fr 1fr;   /* center wider for the photo */
   gap: 14px;
+  align-items: start;
   margin-bottom: 14px;
 }
-
-.grid-bottom {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-/* ═══ LEFT COLUMN: stacked 01 + 02 ═══ */
-.col-left {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
+.col-left,
 .col-center,
 .col-right {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 /* ═══ 01: BIO AGE ═══ */
@@ -213,7 +200,7 @@ body {
 .score-line {
   margin-top: 9px;
   margin-bottom: 7px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--ink-mute);
@@ -225,17 +212,17 @@ body {
   letter-spacing: 0;
 }
 .bio-desc {
-  font-size: 17.2px;
+  font-size: 21px;
   color: var(--ink-soft);
   line-height: 1.34;
 }
 .passport-age {
   margin-top: 8px;
-  font-size: 15.5px;
+  font-size: 18px;
   color: var(--ink-mute);
 }
 .card-text {
-  font-size: 17.4px;
+  font-size: 21px;
   color: var(--ink-soft);
   line-height: 1.43;
   white-space: pre-line;
@@ -244,9 +231,9 @@ body {
 .strengths-compliment {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 18px;
+  font-size: 19.5px;
   color: var(--ink);
-  line-height: 1.26;
+  line-height: 1.28;
   margin-bottom: 8px;
 }
 
@@ -255,7 +242,7 @@ body {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 600;
-  font-size: 19.5px;
+  font-size: 22px;
   color: var(--ink);
   margin-bottom: 9px;
   line-height: 1.3;
@@ -265,7 +252,7 @@ body {
 .aging-type {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 24.5px;
+  font-size: 27px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
@@ -279,15 +266,15 @@ body {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 9px;
-  aspect-ratio: 0.94;
+  margin-bottom: 11px;
+  aspect-ratio: 1.06;
   background: linear-gradient(180deg, #e8dece, #ddd0bc);
 }
 .zone-photo-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 58%;
+  object-position: 50% 50%;
   display: block;
 }
 .zone-photo-wrap svg.overlay {
@@ -305,9 +292,9 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 7px 10px;
+  gap: 7px 12px;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-soft);
 }
 .zone-legend .dot {
@@ -323,44 +310,28 @@ body {
 }
 .zone-legend .dot.g::before { background: var(--green); }
 .zone-legend .dot.y::before { background: var(--yellow); }
+.zone-legend .dot.o::before { background: var(--orange); }
 .zone-legend .dot.r::before { background: var(--red); }
 
 .zone-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3px 12px;
+  gap: 6px 14px;
 }
 .zone-item {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  display: flex;
+  align-items: baseline;
   gap: 7px;
-  align-items: start;
-  padding: 6px 7px 5px;
-  border: 1px solid rgba(180, 160, 130, 0.24);
-  border-radius: 9px;
-  background: rgba(255, 250, 244, 0.62);
-  font-size: 14.6px;
+  font-size: 18px;
+  line-height: 1.25;
   color: var(--ink-soft);
 }
 .zone-item .zn {
   font-family: var(--serif);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 19px;
   color: var(--accent);
-  min-width: 16px;
-}
-.zone-item b {
-  display: block;
-  font-size: 14.9px;
-  line-height: 1.12;
-  color: var(--ink);
-}
-.zone-item small {
-  display: block;
-  margin-top: 2px;
-  font-size: 12.8px;
-  line-height: 1.2;
-  color: var(--ink-mute);
+  min-width: 14px;
 }
 
 /* ═══ 06: AGE CHANGES CARD ═══ */
@@ -384,7 +355,7 @@ body {
 }
 .growth-text,
 .timeline-intro {
-  font-size: 16.5px;
+  font-size: 20.5px;
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -443,13 +414,13 @@ body {
     radial-gradient(420px 180px at 90% 10%, rgba(160,120,64,0.16), transparent 68%);
   border: 1.4px solid rgba(160,120,64,0.34);
   border-radius: var(--radius);
-  padding: 22px 26px 22px 30px;
+  padding: 20px 26px 20px 30px;
   box-shadow: 0 18px 48px rgba(70,52,36,0.14), 0 0 0 1px rgba(255,255,255,0.55) inset;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 0.42fr);
   gap: 24px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .final-block::before {
   content: '';
@@ -480,7 +451,7 @@ body {
 }
 .final-text {
   font-family: var(--serif);
-  font-size: 23px;
+  font-size: 26px;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.25;
@@ -512,7 +483,7 @@ body {
 /* ═══ DISCLAIMER ═══ */
 .disclaimer {
   text-align: center;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--ink-mute);
   letter-spacing: 0.01em;
   line-height: 1.5;
@@ -534,8 +505,8 @@ body {
     <div class="header-meta"><span data-slot="user-name">Гость</span> · <span data-slot="date">Дата протокола</span></div>
   </header>
 
-  <!-- ═══ BALANCED GRID: 01+02+03+06 | MAP+05 | 04+07+08 ═══ -->
-  <div class="grid-top">
+  <!-- ═══ 3-COLUMN GRID: 01+02+03 | MAP+05+06 | 04+07+08 ═══ -->
+  <div class="protocol-grid">
 
     <!-- LEFT: 01 + 02 + 03 -->
     <div class="col-left">
@@ -571,7 +542,6 @@ body {
           <li>Глаза, симметрия и пропорции создают выразительность.</li>
         </ul>
       </div>
-
     </div>
 
     <!-- CENTER: Zone map + 05 + 06 -->
@@ -588,6 +558,7 @@ body {
         <div class="zone-legend">
           <span class="dot g">Всё хорошо</span>
           <span class="dot y">Зона внимания</span>
+          <span class="dot o">Активный фокус</span>
           <span class="dot r">Приоритет</span>
         </div>
         <div class="zone-list" data-slot="zone-list">
@@ -598,7 +569,7 @@ body {
       <!-- 05: Why -->
       <div class="card" id="block-05">
         <div class="card-num">05</div>
-        <div class="card-title">Как лицо может меняться со временем</div>
+        <div class="card-title">Какие изменения будут со временем</div>
         <div class="card-text" data-slot="why-text">Без регулярной работы отёчность может становиться устойчивее, взгляд — тяжелее, а овал лица — мягче. При регулярной работе можно дольше сохранять свежесть, чёткость черт и тонус.</div>
       </div>
 
@@ -623,7 +594,7 @@ body {
       <!-- 07: FF Benefits -->
       <div class="card" id="block-07">
         <div class="card-num">07</div>
-        <div class="card-title">Что даст фейсфитнес</div>
+        <div class="card-title">Что даст фейс-фитнес</div>
         <div class="card-text" data-slot="ff-benefits-text">Фейсфитнес помогает мягко проявить сильные стороны лица и поддержать главный сценарий.</div>
         <ul data-slot="ff-benefits">
           <li>Взгляд может стать свежее и мягче.</li>
@@ -795,7 +766,7 @@ function renderProtocol(d) {
     const faceImg = document.querySelector('[data-slot="face-img"]');
     faceImg.style.display = 'block';
     faceImg.src = d.images.face_url;
-    faceImg.style.objectPosition = d.images.face_object_position || '50% 58%';
+    faceImg.style.objectPosition = d.images.face_object_position || '50% 50%';
   }
 
   // 05 Why
@@ -938,12 +909,10 @@ function renderZones(zoneMapOrZones) {
     svg.appendChild(text);
   });
 
-  // List
-  list.innerHTML = zones.map(z => {
-    const status = z.status_label || ({green: "Всё хорошо", yellow: "Зона внимания", red: "Приоритет"}[z.status] || "Зона внимания");
-    const visible = z.visible || z.description || "";
-    return `<div class="zone-item"><span class="zn">${z.id}</span><div><b>${esc(z.name)}</b><small>${esc(status)}${visible ? ` · ${esc(visible)}` : ""}</small></div></div>`;
-  }).join("");
+  // List — compact: number + zone name (status is shown via dot color on the map)
+  list.innerHTML = zones.map(z =>
+    `<div class="zone-item"><span class="zn">${z.id}</span> ${esc(z.name)}</div>`
+  ).join("");
 }
 
 
@@ -1006,6 +975,9 @@ window.preloadProtocolImages = function(){
   });
 };
 
+// Layout is now a fixed 3-column CSS grid (no JS column balancing needed).
+// Kept as a no-op so any older renderer that still calls it stays harmless.
+window.balanceProtocolColumns = function(){};
 
 // ═══ Boot ═══
 renderProtocol(protocolData);

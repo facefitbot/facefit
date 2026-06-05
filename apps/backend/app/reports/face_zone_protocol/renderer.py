@@ -41,7 +41,7 @@ from app.reports.face_zone_protocol.mediapipe_map import canonical_zone_id, dete
 
 logger = logging.getLogger(__name__)
 
-RENDER_WIDTH = 1184
+RENDER_WIDTH = 1480
 RENDER_HEIGHT = 1980
 OBJECT_POSITION = "50% 58%"
 
@@ -993,7 +993,7 @@ def build_face_zone_protocol_data(
             "date": _date(created_at),
             "age": client_age,
         },
-        "images": {"face_image_url": face_image_url, "face_object_position": OBJECT_POSITION},
+        "images": {"face_image_url": face_image_url, "face_object_position": zone_geometry.get("object_position") or OBJECT_POSITION},
         "header": {
             "title": "Персональный протокол лица",
             "title_accent": "протокол",
@@ -1379,9 +1379,11 @@ def _png_age_changes_text(type_id: str, component_ids: list[str], client_age: in
     elif second == "fine_wrinkle":
         p2 = "30–35: к этому может добавляться сухость и мелкая сетка вокруг глаз."
 
-    ai_hint = ". ".join(_sentence_list(strict_text)[:1])
     intro = f"Сейчас, в {client_age}, лучшее время работать мягко: главный фокус — {focus_phrase}."
-    return _limit_keep_breaks("\n\n".join([p1, p2, p3, intro, ai_hint]), 430, "\n\n".join([p1, p2, p3]))
+    # Note: the AI strict_text "hint" is intentionally dropped here — it tended to repeat the
+    # 25–30 age theme already covered by p1, producing a duplicated run-on tail. Three clean
+    # age ranges + one closing sentence read better and keep block 06 compact.
+    return _limit_keep_breaks("\n\n".join([p1, p2, p3, intro]), 330, "\n\n".join([p1, p2, p3]))
 
 
 def _png_block_text(value: Any, max_chars: int, fallback: str = "") -> str:
@@ -1718,7 +1720,9 @@ def render_face_zone_protocol_v1(
     html_path.write_text(template_path.read_text(encoding="utf-8"), encoding="utf-8")
 
     photo_url = _photo_url(user_photo_path_or_url)
-    zone_geometry = detect_face_zone_geometry(user_photo_path_or_url, object_position=OBJECT_POSITION)
+    # object_position omitted -> computed per-photo to center the detected face
+    # (and returned in zone_geometry so the template <img> uses the same crop).
+    zone_geometry = detect_face_zone_geometry(user_photo_path_or_url)
     data = build_face_zone_protocol_data(
         analysis_request_id=analysis_request_id,
         user_name=user_name,
@@ -1741,7 +1745,7 @@ def render_face_zone_protocol_v1(
         if executable_path:
             launch_kwargs["executable_path"] = executable_path
         browser = playwright.chromium.launch(**launch_kwargs)
-        page = browser.new_page(viewport={"width": RENDER_WIDTH, "height": RENDER_HEIGHT}, device_scale_factor=1)
+        page = browser.new_page(viewport={"width": RENDER_WIDTH, "height": RENDER_HEIGHT}, device_scale_factor=2)
         page.goto(html_path.resolve().as_uri(), wait_until="networkidle")
         page.evaluate("document.body.classList.remove('full-readable-export')")
         page.evaluate("document.body.style.padding = '0'")
@@ -1752,9 +1756,23 @@ def render_face_zone_protocol_v1(
             logger.warning("Zone protocol image preload hook failed", exc_info=True)
         if page.evaluate("document.fonts && document.fonts.ready ? true : false"):
             page.evaluate("document.fonts.ready")
+        # Layout is a fixed 3-column CSS grid now — no JS column balancing needed.
         root = page.locator("#protocol-root")
         root.wait_for(state="visible", timeout=15_000)
         root.screenshot(path=str(output_path), type="png")
+        # Also capture JUST the face-map photo element (face + colored zones +
+        # numbers). The web report reuses this directly so it always matches the
+        # PNG protocol exactly, instead of fragile pixel-cropping of the full
+        # composed page, which breaks on differently-framed photos.
+        try:
+            zone_photo = page.locator("#zone-map-card .zone-photo-wrap")
+            if zone_photo.count():
+                zone_photo_path = Path(output_path).with_name(
+                    f"{Path(output_path).stem}_zone_map_photo{Path(output_path).suffix}"
+                )
+                zone_photo.first.screenshot(path=str(zone_photo_path), type="png")
+        except Exception:
+            logger.warning("Zone-map photo element screenshot failed", exc_info=True)
         browser.close()
 
     if not output_path.exists():
