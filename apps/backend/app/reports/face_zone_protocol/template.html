@@ -334,15 +334,6 @@ body {
   min-width: 14px;
 }
 
-/* ═══ 06: AGE CHANGES CARD ═══ */
-.card-age-changes {
-  margin-bottom: 0;
-}
-.card-age-changes .card-text {
-  line-height: 1.46;
-  white-space: pre-line;
-}
-
 /* ═══ GROWTH AREAS ═══ */
 .growth-section {
   margin-bottom: 14px;
@@ -505,7 +496,7 @@ body {
     <div class="header-meta"><span data-slot="user-name">Гость</span> · <span data-slot="date">Дата протокола</span></div>
   </header>
 
-  <!-- ═══ 3-COLUMN GRID: 01+02+03 | MAP+05+06 | 04+07+08 ═══ -->
+  <!-- ═══ 3-COLUMN GRID: 01+02+03 | MAP+05 | 04+07+08 ═══ -->
   <div class="protocol-grid">
 
     <!-- LEFT: 01 + 02 + 03 -->
@@ -571,13 +562,6 @@ body {
         <div class="card-num">05</div>
         <div class="card-title">Какие изменения будут со временем</div>
         <div class="card-text" data-slot="why-text">Без регулярной работы отёчность может становиться устойчивее, взгляд — тяжелее, а овал лица — мягче. При регулярной работе можно дольше сохранять свежесть, чёткость черт и тонус.</div>
-      </div>
-
-      <!-- 06: Age Changes -->
-      <div class="card card-age-changes" id="block-06">
-        <div class="card-num">06</div>
-        <div class="card-title" id="age-changes-title">Первые изменения по возрасту</div>
-        <div class="card-text" data-slot="age-changes-text">Для вашего типа старения в 30–35 лет обычно глаза и уголки рта быстрее выдают усталость. В 35–40 — свежесть и тонус возвращаются медленнее. Сейчас — лучшее время начать.</div>
       </div>
     </div>
 
@@ -719,11 +703,6 @@ const protocolData = {
     ]
   },
 
-  block_06_age_changes: {
-    title: "Почему важно начать сейчас",
-    text: "Главный фокус — зона глаз и верхняя часть лица. Если уменьшить отёчность и снять лишнее напряжение, взгляд будет выглядеть свежее."
-  },
-
   final_summary: "У вас красивое лицо с сильной природной базой. Главное сейчас — раскрыть то, что уже заложено природой, и мягко убрать напряжение, которое скрывает вашу настоящую красоту.",
 
   tagline: "«Именно для этого создан этот курс.»"
@@ -738,7 +717,6 @@ function renderProtocol(d) {
   const strengthsBlock = d.block_03_strengths || d.block_06_strengths || {};
   const agingBlock = d.block_04_face_aging || d.block_03_face_aging || {};
   const zoneMap = d.zone_map || d.block_zone_map || d.block_04_zone_map || {};
-  const ageChangesBlock = d.block_06_age_changes || d.block_09_age_changes || {};
 
   // User
   setText("user-name", d.user.name);
@@ -783,13 +761,6 @@ function renderProtocol(d) {
   // 08 Timeline
   setText("timeline-intro", d.block_08_timeline.intro);
   setList("timeline", d.block_08_timeline.items);
-
-  // 06 Age Changes
-  if (ageChangesBlock && ageChangesBlock.text) {
-    setText("age-changes-text", ageChangesBlock.text);
-    const titleEl = document.getElementById('age-changes-title');
-    if (titleEl && ageChangesBlock.title) titleEl.textContent = ageChangesBlock.title;
-  }
 
   // Final
   setText("final-summary", d.final_summary);

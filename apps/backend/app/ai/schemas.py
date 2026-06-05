@@ -123,6 +123,192 @@ class TimeForecast(BaseModel):
     stable_result: str
 
 
+class ProtocolBioAge(BaseModel):
+    visual_age: int = Field(ge=1, le=110)
+    passport_age: int | None = Field(default=None, ge=1, le=110)
+    skin_score: int = Field(ge=0, le=100)
+    description: str
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: Any) -> str:
+        return _public_text(value)
+
+
+class ProtocolSkinType(BaseModel):
+    name: str
+    description: str
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: Any) -> str:
+        return _public_skin_type(value)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: Any) -> str:
+        return _public_text(value)
+
+
+class ProtocolAgingType(BaseModel):
+    name: str
+    description: str
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: Any) -> str:
+        return _public_text(value)
+
+
+class ProtocolZone(BaseModel):
+    id: int = Field(ge=1)
+    name: str
+    status: Literal["green", "yellow", "orange", "red"]
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: Any) -> str:
+        return _public_text(value)
+
+
+class ProtocolZoneMap(BaseModel):
+    zones: list[ProtocolZone]
+
+    @field_validator("zones")
+    @classmethod
+    def validate_zone_count(cls, value: list[ProtocolZone]) -> list[ProtocolZone]:
+        if len(value) != 6:
+            raise ValueError("zone_map.zones must contain exactly 6 zones")
+        intense = sum(1 for zone in value if zone.status in {"orange", "red"})
+        if intense > 2:
+            raise ValueError("zone_map.zones must contain no more than 2 orange/red zones")
+        return value
+
+
+class ProtocolTextListBlock(BaseModel):
+    intro: str
+    items: list[str] = Field(default_factory=list)
+
+    @field_validator("intro", mode="before")
+    @classmethod
+    def normalize_intro(cls, value: Any) -> str:
+        return _public_text(value)
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def normalize_items(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [_public_text(item) for item in value if _public_text(item)]
+
+
+class ProtocolChangesOverTime(BaseModel):
+    intro: str
+    age_stages: list[str]
+
+    @field_validator("intro", mode="before")
+    @classmethod
+    def normalize_intro(cls, value: Any) -> str:
+        return _public_text(value)
+
+    @field_validator("age_stages", mode="before")
+    @classmethod
+    def normalize_age_stages(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [_public_text(item) for item in value if _public_text(item)]
+
+    @field_validator("age_stages")
+    @classmethod
+    def validate_age_stages(cls, value: list[str]) -> list[str]:
+        if len(value) < 3:
+            raise ValueError("changes_over_time.age_stages must contain at least 3 stages")
+        return value
+
+
+class ProtocolFaceFitness(BaseModel):
+    description: str
+    items: list[str] = Field(default_factory=list)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: Any) -> str:
+        return _public_text(value)
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def normalize_items(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [_public_text(item) for item in value if _public_text(item)]
+
+
+class ProtocolForecast(BaseModel):
+    intro: str = "Если ты начнёшь заниматься по нашей системе:"
+    items: list[str]
+
+    @field_validator("intro", mode="before")
+    @classmethod
+    def normalize_intro(cls, value: Any) -> str:
+        return _public_text(value)
+
+    @field_validator("items", mode="before")
+    @classmethod
+    def normalize_items(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [_public_text(item) for item in value if _public_text(item)]
+
+    @field_validator("items")
+    @classmethod
+    def validate_items(cls, value: list[str]) -> list[str]:
+        if len(value) != 3:
+            raise ValueError("forecast.items must contain exactly 3 items")
+        return value
+
+
+class ProtocolSummary(BaseModel):
+    text: str
+    quote: str
+
+    @field_validator("text", "quote", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any) -> str:
+        return _public_text(value)
+
+
+class ProtocolMeta(BaseModel):
+    main_segment: Literal[
+        "puffiness",
+        "under_eye_area",
+        "eye_area",
+        "forehead_tension",
+        "nasolabial_area",
+        "face_oval",
+        "jaw_tension",
+        "double_chin",
+        "neck",
+        "posture",
+        "skin_tone",
+        "skin_texture",
+        "general_freshness",
+    ] = "general_freshness"
+    lead_temperature: Literal["cold", "warm", "hot"] = "warm"
+
+
+class FaceProtocolAIOutput(BaseModel):
+    bio_age: ProtocolBioAge
+    skin_type: ProtocolSkinType
+    aging_type: ProtocolAgingType
+    zone_map: ProtocolZoneMap
+    strengths: ProtocolTextListBlock
+    changes_over_time: ProtocolChangesOverTime
+    facefitness: ProtocolFaceFitness
+    forecast: ProtocolForecast
+    summary: ProtocolSummary
+    meta: ProtocolMeta = Field(default_factory=ProtocolMeta)
+
+
 class JournalSkinAge(BaseModel):
     age_value: int | None = None
     score_value: int | None = None
@@ -448,18 +634,32 @@ class FaceAnalysisJson(BaseModel):
 ANALYSIS_JSON_SCHEMA: dict = {
     "type": "object",
     "required": [
-        "skin_visual_age",
+        "bio_age",
         "skin_type",
-        "face_type_and_aging_type",
-        "zones",
-        "causes",
+        "aging_type",
+        "zone_map",
         "strengths",
-        "facefitness_benefits",
-        "time_forecast",
+        "changes_over_time",
+        "facefitness",
+        "forecast",
         "summary",
-        "cta_recommendation",
-        "journal_protocol",
+        "meta",
     ],
+    "properties": {
+        "bio_age": {
+            "type": "object",
+            "required": ["visual_age", "passport_age", "skin_score", "description"],
+        },
+        "skin_type": {"type": "object", "required": ["name", "description"]},
+        "aging_type": {"type": "object", "required": ["name", "description"]},
+        "zone_map": {"type": "object", "required": ["zones"]},
+        "strengths": {"type": "object", "required": ["intro", "items"]},
+        "changes_over_time": {"type": "object", "required": ["intro", "age_stages"]},
+        "facefitness": {"type": "object", "required": ["description", "items"]},
+        "forecast": {"type": "object", "required": ["intro", "items"]},
+        "summary": {"type": "object", "required": ["text", "quote"]},
+        "meta": {"type": "object", "required": ["main_segment", "lead_temperature"]},
+    },
 }
 
 
@@ -856,7 +1056,223 @@ def strict_report_to_face_analysis(payload: dict[str, Any]) -> dict:
     return normalized
 
 
+def _protocol_status_to_legacy(status: str) -> tuple[str, str]:
+    if status == "green":
+        return "good", "green"
+    if status in {"orange", "red"}:
+        return "priority", "red" if status == "red" else "yellow"
+    return "attention", "yellow"
+
+
+def _forecast_item_to_legacy(item: Any, fallback_period: str) -> tuple[str, str]:
+    text = _public_text(item)
+    for separator in (" — ", " – ", " - ", ": "):
+        if separator in text:
+            period, description = text.split(separator, 1)
+            return _public_text(period) or fallback_period, _public_text(description) or text
+    return fallback_period, text
+
+
+def face_protocol_ai_output_to_face_analysis(payload: dict[str, Any]) -> dict:
+    protocol = FaceProtocolAIOutput.model_validate(payload).model_dump()
+    bio_age = protocol["bio_age"]
+    skin_type = protocol["skin_type"]
+    aging_type = protocol["aging_type"]
+    strengths = protocol["strengths"]
+    changes = protocol["changes_over_time"]
+    facefitness = protocol["facefitness"]
+    forecast = protocol["forecast"]
+    summary = protocol["summary"]
+    meta = protocol.get("meta") or {}
+
+    zones = []
+    for index, zone in enumerate(protocol["zone_map"]["zones"], start=1):
+        legacy_status, color = _protocol_status_to_legacy(zone["status"])
+        zones.append(
+            {
+                "number": index,
+                "name": zone["name"],
+                "status": legacy_status,
+                "color": color,
+                "short_comment": zone["name"],
+                "reason": changes["intro"],
+                "recommended_focus": facefitness["description"],
+            }
+        )
+
+    periods = ["Через 2 недели", "Через 3–4 недели", "Через 6–8 недель"]
+    forecast_items = [
+        _forecast_item_to_legacy(item, periods[min(index, 2)])
+        for index, item in enumerate(forecast["items"][:3])
+    ]
+    while len(forecast_items) < 3:
+        forecast_items.append((periods[len(forecast_items)], "могут появиться мягкие визуальные изменения при регулярной практике."))
+
+    classification = normalize_aging_classification({"type_name": aging_type["name"]}, fallback_text=aging_type["name"])
+    public_aging = classification["combined_label"] or aging_type["name"] or classification["type_name"]
+    age_stages_text = "\n\n".join(changes["age_stages"])
+
+    normalized = FaceAnalysis.model_validate(
+        {
+            "skin_visual_age": {
+                "estimated_range": str(bio_age["visual_age"]),
+                "explanation": bio_age["description"],
+                "confidence": "medium",
+            },
+            "skin_type": {
+                "type": skin_type["name"],
+                "features": [skin_type["description"]],
+                "strengths": [strengths["intro"], *strengths["items"]],
+                "attention_points": [zone["name"] for zone in protocol["zone_map"]["zones"] if zone["status"] in {"yellow", "orange", "red"}],
+            },
+            "face_type_and_aging_type": {
+                "face_type": sanitize_face_features_text(strengths["intro"]),
+                "aging_type": public_aging,
+                "explanation": aging_type["description"],
+            },
+            "zones": zones,
+            "causes": [changes["intro"], *changes["age_stages"]],
+            "strengths": [strengths["intro"], *strengths["items"]],
+            "facefitness_benefits": [facefitness["description"], *facefitness["items"]],
+            "time_forecast": {
+                "first_changes": f"{forecast_items[0][0]} — {forecast_items[0][1]}",
+                "visible_changes": f"{forecast_items[1][0]} — {forecast_items[1][1]}",
+                "stable_result": f"{forecast_items[2][0]} — {forecast_items[2][1]}",
+            },
+            "summary": summary["text"],
+            "cta_recommendation": summary["text"],
+            "journal_protocol": {
+                "skin_age": {
+                    "age_value": bio_age["visual_age"],
+                    "score_value": bio_age["skin_score"],
+                    "main_observation": bio_age["description"],
+                    "description": bio_age["description"],
+                },
+                "skin_type": {
+                    "type_name": skin_type["name"],
+                    "description": skin_type["description"],
+                    "features": [skin_type["description"]],
+                    "strength": strengths["intro"],
+                    "care_focus": facefitness["description"],
+                },
+                "face_type": {
+                    "face_shape": strengths["intro"],
+                    "aging_type": public_aging,
+                    "main_scenario": aging_type["description"],
+                    "what_appears_first": changes["age_stages"],
+                    "recommended_start": facefitness["description"],
+                    "base_note": strengths["intro"],
+                },
+                "zone_map": {
+                    "zones": [
+                        {
+                            "id": str(zone["id"]),
+                            "number": index,
+                            "title": zone["name"],
+                            "status": zone["status"],
+                            "what_is_visible": zone["name"],
+                            "why_it_matters": changes["intro"],
+                            "what_to_do": facefitness["description"],
+                        }
+                        for index, zone in enumerate(protocol["zone_map"]["zones"], start=1)
+                    ]
+                },
+                "why_happens": {
+                    "title": "Какие изменения будут со временем",
+                    "main_explanation": changes["intro"],
+                    "mechanics": [
+                        {"factor": "Возрастной этап", "how_it_affects_face": item, "what_helps": "Регулярная работа по системе Bella Vladi."}
+                        for item in changes["age_stages"]
+                    ],
+                    "conclusion": "Это не приговор, а сигнал начать мягкую регулярную работу сейчас.",
+                },
+                "age_changes": {"text": age_stages_text},
+                "strengths": {
+                    "title": "Ваши сильные стороны",
+                    "items": [
+                        {"title": item, "why_it_is_strength": item, "how_to_enhance": facefitness["description"]}
+                        for item in strengths["items"]
+                    ],
+                },
+                "face_fitness_benefits": {
+                    "title": "Что даст фейсфитнес",
+                    "personal_sequence": [
+                        {"step": index, "focus": item, "why_first": facefitness["description"], "expected_effect": item}
+                        for index, item in enumerate(facefitness["items"], start=1)
+                    ],
+                    "conclusion": facefitness["description"],
+                },
+                "time_forecast": {
+                    "title": "Прогноз по времени",
+                    "intro": forecast["intro"],
+                    "items": [
+                        {"period": period, "description": description}
+                        for period, description in forecast_items
+                    ],
+                },
+                "growth_zones": {
+                    "title": "Зоны роста",
+                    "items": [zone["name"] for zone in protocol["zone_map"]["zones"] if zone["status"] in {"yellow", "orange", "red"}],
+                    "priorities": [
+                        {"priority": index, "zone": zone["name"], "why": changes["intro"]}
+                        for index, zone in enumerate(protocol["zone_map"]["zones"], start=1)
+                        if zone["status"] in {"yellow", "orange", "red"}
+                    ][:3],
+                },
+                "final_summary": {
+                    "label": "Итог",
+                    "main_conclusion": summary["text"],
+                    "main_result_lever": facefitness["description"],
+                    "expected_direction": forecast["items"][-1] if forecast["items"] else "",
+                    "quote": summary["quote"],
+                },
+            },
+            "aging_classification": classification,
+            "face_features": {
+                "title": "Форма и сильные стороны лица",
+                "description": sanitize_face_features_text(strengths["intro"]),
+                "items": [
+                    {
+                        "feature": item,
+                        "observation": item,
+                        "why_it_is_beautiful": item,
+                        "how_face_fitness_reveals_it": facefitness["description"],
+                    }
+                    for item in strengths["items"]
+                ],
+            },
+            "aging_type_block": {
+                "title": "Тип старения",
+                "text": aging_type["description"],
+                "characteristic": aging_type["description"],
+                "how_changes_over_time": changes["intro"],
+                "what_if_nothing_changes": age_stages_text,
+                "main_focus": facefitness["description"],
+            },
+        }
+    ).model_dump()
+
+    normalized["skin_visual_age"]["passport_age"] = bio_age["passport_age"]
+    normalized["skin_visual_age"]["visual_age"] = bio_age["visual_age"]
+    normalized["skin_visual_age"]["skin_score"] = bio_age["skin_score"]
+    normalized["analysis_context"] = {
+        "aging_type_id": classification["type_id"],
+        "aging_type_name": classification["type_name"],
+        "aging_display_name": public_aging,
+        "passport_age": bio_age["passport_age"],
+        "visual_age": bio_age["visual_age"],
+        "skin_score": bio_age["skin_score"],
+        "main_segment": meta.get("main_segment", "general_freshness"),
+        "lead_temperature": meta.get("lead_temperature", "warm"),
+    }
+    normalized["strict_blocks"] = protocol
+    normalized["face_protocol_ai_output"] = protocol
+    return normalized
+
+
 def normalize_analysis_payload(payload: dict[str, Any], *, client_age: int | None = None) -> dict:
+    if isinstance(payload, dict) and {"bio_age", "skin_type", "aging_type", "zone_map", "changes_over_time"}.issubset(payload.keys()):
+        return face_protocol_ai_output_to_face_analysis(payload)
     if isinstance(payload, dict) and payload.get("protocol_version") == BELLA_PROTOCOL_V4:
         validated_v4 = validate_bella_protocol_v4(payload, best_effort=settings.ai_accept_best_effort)
         legacy_payload = protocol_v4_to_legacy_payload(validated_v4)

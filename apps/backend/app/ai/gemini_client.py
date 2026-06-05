@@ -21,7 +21,7 @@ from app.ai.schemas import normalize_analysis_payload, validate_and_sanitize_pro
 
 SCHEMA_INSTRUCTION = (
     build_analysis_system_prompt("")
-    + "\n\nПреобразуй входной текст в полный JSON bella_face_protocol_v4. "
+    + "\n\nПреобразуй входной текст в полный JSON по новой схеме: bio_age, skin_type, aging_type, zone_map, strengths, changes_over_time, facefitness, forecast, summary, meta. "
     "Если данных не хватает, сделай осторожную визуальную оценку без старых классификаций и без копирования примеров."
 )
 
@@ -132,7 +132,8 @@ def analyze_face_with_gemini(
 
     retry_prompt = (
         f"{prompt}\n\n"
-        "Предыдущий JSON не прошел validation. Исправь только JSON и верни полный объект bella_face_protocol_v4.\n"
+        "Предыдущий JSON не прошел validation. Исправь только JSON и верни полный объект по новой схеме: "
+        "bio_age, skin_type, aging_type, zone_map, strengths, changes_over_time, facefitness, forecast, summary, meta.\n"
         "Конкретные ошибки:\n- "
         + "\n- ".join(first_errors[:12])
         + "\n\nПредыдущий JSON:\n"

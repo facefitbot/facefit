@@ -526,7 +526,11 @@ def detect_face_zone_geometry(photo_path: str | Path | None, *, object_position:
     brightness = _brightness_quality(image, cv2, np)
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     model_path = os.getenv("MEDIAPIPE_FACE_LANDMARKER_MODEL_PATH")
-    landmark_sets, backend, matrices = _detect_landmarks(mp, rgb, model_path)
+    try:
+        landmark_sets, backend, matrices = _detect_landmarks(mp, rgb, model_path)
+    except Exception as exc:  # pragma: no cover - depends on optional MediaPipe builds.
+        logger.warning("MediaPipe face zone detection failed: %s", exc)
+        return _default_result("mediapipe_detection_failed")
 
     if not landmark_sets:
         return _default_result("face_not_detected")

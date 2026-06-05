@@ -48,6 +48,7 @@ OBJECT_POSITION = "50% 58%"
 STATUS_LABELS = {
     "green": "Всё хорошо",
     "yellow": "Зона внимания",
+    "orange": "Активный фокус",
     "red": "Приоритет",
 }
 
@@ -562,6 +563,10 @@ def _clip_words(value: Any, max_chars: int, fallback: str) -> str:
 
 
 def _status(value: Any, color: Any = None) -> str:
+    text = _clean(value).lower()
+    color_text = _clean(color).lower()
+    if text in {"orange", "оранжевый", "active", "active_focus", "активный фокус"} or color_text in {"orange", "оранжевый"}:
+        return "orange"
     return status_color(report_status(value, color))
 
 
@@ -727,7 +732,7 @@ def _zones_with_geometry(raw_zones: list[dict[str, Any]], geometry: dict[str, An
 
 
 def _stronger_status(current: str, candidate: str) -> str:
-    rank = {"green": 0, "yellow": 1, "red": 2}
+    rank = {"green": 0, "yellow": 1, "orange": 2, "red": 3}
     return candidate if rank.get(candidate, 1) > rank.get(current, 1) else current
 
 
@@ -1596,6 +1601,82 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     images = _dict(data.get("images"))
     client = _dict(data.get("client"))
     strict_blocks = _dict(data.get("strict_blocks"))
+    if {"bio_age", "skin_type", "aging_type", "zone_map", "changes_over_time"}.issubset(strict_blocks.keys()):
+        bio_age = _dict(strict_blocks.get("bio_age"))
+        protocol_skin_type = _dict(strict_blocks.get("skin_type"))
+        protocol_aging = _dict(strict_blocks.get("aging_type"))
+        protocol_strengths = _dict(strict_blocks.get("strengths"))
+        protocol_changes = _dict(strict_blocks.get("changes_over_time"))
+        protocol_facefitness = _dict(strict_blocks.get("facefitness"))
+        protocol_forecast = _dict(strict_blocks.get("forecast"))
+        protocol_summary = _dict(strict_blocks.get("summary"))
+        age_stages = _list(protocol_changes.get("age_stages"), [], None)
+        changes_text = "\n\n".join(
+            [text for text in [_meaningful(protocol_changes.get("intro"), ""), *age_stages] if text]
+        )
+        merged = dict(data)
+        merged["user"] = {
+            "name": _clean(client.get("name"), "Гость"),
+            "date": _clean(client.get("date"), _date(datetime.now())),
+        }
+        merged["images"] = {
+            **images,
+            "face_url": images.get("face_image_url") or images.get("face_url") or "",
+            "face_object_position": images.get("face_object_position") or OBJECT_POSITION,
+        }
+        merged["block_01_bio_age"] = {
+            "estimated_age": bio_age.get("visual_age") or 30,
+            "passport_age": bio_age.get("passport_age"),
+            "score": bio_age.get("skin_score") or 82,
+            "description": _meaningful(bio_age.get("description"), ""),
+        }
+        merged["block_02_skin_type"] = {
+            "type": _meaningful(protocol_skin_type.get("name"), ""),
+            "description": _meaningful(protocol_skin_type.get("description"), ""),
+            "features": [],
+        }
+        merged["block_03_strengths"] = {
+            "compliment": _meaningful(protocol_strengths.get("intro"), ""),
+            "items": _list(protocol_strengths.get("items"), [], None),
+        }
+        merged["block_04_face_aging"] = {
+            "aging_type": _meaningful(protocol_aging.get("name"), ""),
+            "description": _meaningful(protocol_aging.get("description"), ""),
+            "bullets": [],
+        }
+        merged["zone_map"] = {
+            "zones": _v3_template_zones(zone_map),
+            "contours": zone_map.get("contours") or {},
+            "quality": zone_map.get("quality") or {},
+        }
+        merged["block_05_why"] = {
+            "text": changes_text,
+            "reasons": age_stages,
+        }
+        merged["block_06_age_changes"] = {
+            "title": "",
+            "text": "",
+        }
+        merged["block_03_face_aging"] = merged["block_04_face_aging"]
+        merged["block_04_zone_map"] = merged["zone_map"]
+        merged["block_06_strengths"] = {
+            "compliment": merged["block_03_strengths"]["compliment"],
+            "items": merged["block_03_strengths"]["items"],
+        }
+        merged["block_07_facefitness_benefits"] = {
+            "text": _meaningful(protocol_facefitness.get("description"), ""),
+            "items": _list(protocol_facefitness.get("items"), [], None),
+        }
+        merged["block_08_timeline"] = {
+            "intro": _meaningful(protocol_forecast.get("intro"), "Если ты начнёшь заниматься по нашей системе:"),
+            "items": _list(protocol_forecast.get("items"), [], None),
+        }
+        merged["growth_areas"] = _v3_growth_areas(data)
+        merged["growth_text"] = changes_text
+        merged["final_summary"] = _meaningful(protocol_summary.get("text"), "")
+        merged["tagline"] = _meaningful(protocol_summary.get("quote"), "")
+        return merged
+
     compact = _compact_protocol_payload(data)
     alias_type_id = normalize_aging_classification(_dict(strict_blocks.get("aging_type")) or face_type)["type_id"]
     alias_mixed_components = mixed_combo_type_ids_from_payload(data) if alias_type_id == "tired_mixed" else []
@@ -1662,13 +1743,19 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
     }
     merged["zone_map"] = {"zones": _v3_template_zones(zone_map), "contours": zone_map.get("contours") or {}, "quality": zone_map.get("quality") or {}}
     merged["block_05_why"] = {
-        "text": _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
+        "text": "\n\n".join(
+            text
+            for text in [
+                _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
+                _limit_keep_breaks(_dict(data.get("age_changes")).get("text") or _full_text("age_changes"), 430, ""),
+            ]
+            if text
+        ),
         "reasons": compact["future_changes"]["bullets"],
     }
-    age_changes = _dict(data.get("age_changes"))
     merged["block_06_age_changes"] = {
-        "title": _meaningful(age_changes.get("title"), "Первые изменения по возрасту"),
-        "text": _limit_keep_breaks(age_changes.get("text") or _full_text("age_changes"), 430, ""),
+        "title": "",
+        "text": "",
     }
 
     # Backward-compatible aliases for older previews/templates.
