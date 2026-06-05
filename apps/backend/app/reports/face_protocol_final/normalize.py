@@ -1263,6 +1263,185 @@ def _age_unit_for_value(value: Any) -> str:
     return russian_year_word(int(match.group(0))) if match else "лет"
 
 
+def _protocol_forecast_horizon(age: int | None) -> int:
+    if not age or age < 20:
+        return 40
+    if 20 <= age <= 25:
+        return age + 20
+    if 26 <= age <= 35:
+        return 50 if age <= 30 else 55
+    return 60 if age <= 40 else 65
+
+
+def _protocol_age_stage_labels(age: int | None) -> list[str]:
+    start = age if age and 16 <= age <= 90 else 30
+    horizon = _protocol_forecast_horizon(start)
+    boundaries = [start]
+    next_boundary = ((start // 5) + 1) * 5
+    if next_boundary <= start:
+        next_boundary = start + 5
+    while next_boundary < horizon:
+        boundaries.append(next_boundary)
+        next_boundary += 5
+    if boundaries[-1] != horizon:
+        boundaries.append(horizon)
+    return [f"{left}–{right}" for left, right in zip(boundaries, boundaries[1:])]
+
+
+def _protocol_age_stage_texts(age: int | None, aging_type: Any, focus_phrase: str) -> list[str]:
+    labels = _protocol_age_stage_labels(age)
+    key = _aging_type_key(aging_type)
+    if key == "muscular":
+        meanings = [
+            "могут заметнее проявляться лоб, межбровье и жевательное напряжение, поэтому важно начинать с мягкого расслабления.",
+            "мимические линии могут закрепляться быстрее, если лицо часто держит выражение собранности или строгости.",
+            "нижняя треть может выглядеть плотнее из-за напряжения жевательной зоны, но регулярная работа помогает вернуть мягкость.",
+            "при системной поддержке можно сохранить сильный каркас лица и сделать выражение более открытым.",
+        ]
+    elif key == "deformation":
+        meanings = [
+            "могут сильнее считываться утренняя отёчность, зона глаз и мягкость нижней трети, поэтому важны шея и отток.",
+            "ткани могут становиться тяжелее к вечеру, а овал — мягче, если не поддерживать лимфодренаж и осанку.",
+            "нижняя треть может требовать больше внимания, но регулярная работа помогает лицу выглядеть легче и свежее.",
+            "при мягкой системе можно дольше сохранять чёткость овала и ощущение собранного лица.",
+        ]
+    elif key == "wrinkled":
+        meanings = [
+            "кожа может быстрее показывать сухость, тонкую сеточку и усталость в зоне глаз, поэтому важны питание тканей и увлажнение.",
+            "может снижаться ощущение мягкого объёма в средней трети, если не поддерживать микроциркуляцию.",
+            "текстура кожи может становиться более требовательной к уходу, но мягкая работа помогает сохранить живость лица.",
+            "при регулярной поддержке можно дольше сохранять изящный контур и свежий тон.",
+        ]
+    else:
+        meanings = [
+            "могут проявляться первые признаки усталости — зона глаз, носогубная область и лёгкая пастозность к вечеру.",
+            "усталый вид может становиться более постоянным, а свежесть взгляда и мягкость средней трети — требовать больше поддержки.",
+            "без работы с тонусом ткани могут постепенно смещаться вниз, а овал и нижняя треть выглядеть мягче.",
+            "процессы могут ускоряться, но при регулярной работе их можно заметно замедлить и сохранить свежесть лица.",
+        ]
+    while len(meanings) < len(labels):
+        meanings.append(
+            f"фокус остаётся на зонах {focus_phrase}; это не приговор, а сигнал поддерживать лицо системно и мягко."
+        )
+    return [f"{label}: {meanings[index]}" for index, label in enumerate(labels)]
+
+
+def _protocol_zone_status(value: Any) -> str:
+    status = report_status(value)
+    if status == "good":
+        return "green"
+    if status == "priority":
+        return "orange"
+    return "yellow"
+
+
+def _fallback_face_protocol_ai_output(
+    *,
+    user_age: int | None,
+    skin_age_value: Any,
+    skin_score: Any,
+    skin_type_title: str,
+    skin_type_description: str,
+    aging_type: Any,
+    aging_description: str,
+    strengths_intro: str,
+    strengths_items: list[str],
+    changes_intro: str,
+    focus_phrase: str,
+    facefitness_description: str,
+    facefitness_items: list[str],
+    forecast_items: list[str],
+    final_summary: str,
+    zones: list[dict[str, Any]],
+) -> dict[str, Any]:
+    visual_age = int(_first_number(skin_age_value, str((user_age or 30) + 2)))
+    score = int(_first_number(skin_score, "82"))
+    zone_items: list[dict[str, Any]] = []
+    for index, zone in enumerate(zones[:6], start=1):
+        zone_items.append(
+            {
+                "id": index,
+                "name": normalize_zone_title(zone.get("label") or zone.get("name"), DEFAULT_ZONES[min(index - 1, len(DEFAULT_ZONES) - 1)]["label"]),
+                "status": _protocol_zone_status(zone.get("status") or zone.get("color")),
+            }
+        )
+    for default in DEFAULT_ZONES:
+        if len(zone_items) >= 6:
+            break
+        zone_items.append({"id": len(zone_items) + 1, "name": default["label"], "status": _protocol_zone_status(default["status"])})
+
+    age_stages = _protocol_age_stage_texts(user_age, aging_type, focus_phrase)
+    cleaned_strengths = [item for item in strengths_items if _clean_text(item)]
+    if len(cleaned_strengths) < 3:
+        cleaned_strengths.extend(
+            [
+                "Гармоничная форма лица визуально поддерживает мягкий и женственный овал.",
+                "Скулы создают естественную опору, благодаря которой лицо выглядит собраннее.",
+                "Выразительный взгляд остаётся сильной точкой притяжения и хорошо раскрывается через свежесть зоны глаз.",
+            ][len(cleaned_strengths):]
+        )
+    cleaned_benefits = [item for item in facefitness_items if _clean_text(item)]
+    if len(cleaned_benefits) < 3:
+        cleaned_benefits.extend(
+            [
+                "Мягкий лимфодренаж поможет лицу выглядеть легче и свежее.",
+                "Работа с шеей и осанкой поддержит овал и зону глаз.",
+                "Регулярный тонус поможет раскрыть природные черты без изменения лица.",
+            ][len(cleaned_benefits):]
+        )
+    cleaned_forecast = [item for item in forecast_items if _clean_text(item)]
+    while len(cleaned_forecast) < 3:
+        cleaned_forecast.append(
+            [
+                "Через 2 недели — взгляд может стать свежее, а лицо визуально легче.",
+                "Через 3–4 недели — носогубная зона и овал могут выглядеть мягче и собраннее.",
+                "Через 6–8 недель — свежесть и тонус могут стать более устойчивыми при регулярной практике.",
+            ][len(cleaned_forecast)]
+        )
+
+    return {
+        "bio_age": {
+            "visual_age": visual_age,
+            "passport_age": user_age,
+            "skin_score": max(0, min(100, score)),
+            "description": skin_age_value if _clean_text(skin_age_value) and not str(skin_age_value).isdigit() else f"У тебя хорошая природная база кожи: она выглядит ровной, ухоженной и достаточно свежей. Визуально лицо сейчас считывается примерно на {visual_age} {russian_year_word(visual_age)}, и на это больше влияют {focus_phrase}, а не сами черты. Хорошая новость в том, что эти зоны хорошо отвечают на мягкую регулярную работу.",
+        },
+        "skin_type": {
+            "name": skin_type_title,
+            "description": skin_type_description,
+        },
+        "aging_type": {
+            "name": aging_public_label(aging_type),
+            "description": aging_description,
+        },
+        "zone_map": {"zones": zone_items[:6]},
+        "strengths": {
+            "intro": strengths_intro,
+            "items": cleaned_strengths[:3],
+        },
+        "changes_over_time": {
+            "intro": changes_intro,
+            "age_stages": age_stages,
+        },
+        "facefitness": {
+            "description": facefitness_description,
+            "items": cleaned_benefits[:3],
+        },
+        "forecast": {
+            "intro": "Если ты начнёшь заниматься по нашей системе:",
+            "items": cleaned_forecast[:3],
+        },
+        "summary": {
+            "text": final_summary,
+            "quote": "Твоя красота уже есть — мы просто помогаем ей раскрыться.",
+        },
+        "meta": {
+            "main_segment": "general_freshness",
+            "lead_temperature": "warm",
+        },
+    }
+
+
 def build_protocol_copy_from_analysis(
     analysis_json: dict[str, Any],
     selected_problems: list[str] | None = None,
@@ -1323,6 +1502,60 @@ def build_protocol_copy_from_analysis(
     journal_growth = _journal_growth(journal)
     journal_final = _journal_final_summary(journal)
     skin_type_title = _skin_type_title(j_skin_type.get("type_name") or skin_type.get("type"))
+    priority_labels = [
+        normalize_zone_title(zone.get("label"), "Зона лица")
+        for zone in zones
+        if report_status(zone.get("status")) in {"attention", "priority"}
+    ][:4]
+    focus_phrase = _format_list_ru(priority_labels, "зона глаз, шея и нижняя треть")
+    fallback_skin_age_text = (
+        j_skin_age.get("description")
+        or j_skin_age.get("main_observation")
+        or skin_age.get("explanation")
+        or ""
+    )
+    fallback_skin_type_text = (
+        j_skin_type.get("description")
+        or (features[0] if features else "")
+        or "Твоя кожа выглядит достаточно ровной, но при этом может просить больше увлажнения и мягкого ухода. Это хорошая база: при регулярной поддержке тон выглядит свежее, спокойнее и более ухоженно."
+    )
+    fallback_aging_text = (
+        j_face_type.get("main_scenario")
+        or morphotype.get("why_this_type")
+        or aging.get("explanation")
+        or "Комбинированный сценарий проявляется мягко: лицо может выглядеть свежим утром, но к вечеру сильнее считываются зона глаз, носогубная область и нижняя треть. Это связано с тонусом мышц, микроциркуляцией и оттоком жидкости. При регулярной работе такие изменения хорошо поддаются мягкой коррекции."
+    )
+    fallback_strengths_intro = (
+        j_face_type.get("base_note")
+        or sanitize_face_features_text(j_face_type.get("face_shape") or aging.get("face_type"))
+        or "Твоё лицо обладает красивой природной гармонией: мягкий овал, выразительная зона глаз и спокойные пропорции уже создают сильную базу. Эти черты не нужно менять, их важно раскрыть через свежесть, тонус и мягкий лимфодренаж."
+    )
+    fallback_changes_intro = (
+        j_why.get("main_explanation")
+        or _why_intro_fallback(analysis, insight)
+    )
+    fallback_benefits_text = (
+        j_benefits.get("conclusion")
+        or _benefits_outro_fallback(analysis, insight, aging_type)
+    )
+    fallback_final_text = (
+        journal_final
+        or insight.get("final_personal_summary")
+        or insight.get("main_leverage_point")
+        or analysis.get("summary")
+        or "У тебя красивое лицо с сильной природной базой. Главный шаг сейчас — вернуть свежесть взгляду, поддержать микроциркуляцию и мягкий тонус, чтобы раскрыть природную красоту спокойнее и глубже. Именно для этого создан этот курс."
+    )
+    fallback_forecast_items = journal_forecast or [
+        forecast.get("first_changes"),
+        forecast.get("visible_changes"),
+        forecast.get("stable_result"),
+    ]
+    fallback_skin_age_value = (
+        fallback_skin_age_text
+        or j_skin_age.get("age_value")
+        or skin_age.get("estimated_range")
+        or ((user_age or 30) + 2)
+    )
     strict_blocks = _strict_blocks_from_analysis(
         analysis=analysis,
         zones=zones,
@@ -1341,6 +1574,25 @@ def build_protocol_copy_from_analysis(
     )
     if isinstance(analysis.get("strict_blocks"), dict) and analysis.get("strict_blocks"):
         strict_blocks = analysis["strict_blocks"]
+    else:
+        strict_blocks = _fallback_face_protocol_ai_output(
+            user_age=user_age,
+            skin_age_value=fallback_skin_age_value,
+            skin_score=j_skin_age.get("score_value") or "82",
+            skin_type_title=skin_type_title,
+            skin_type_description=fallback_skin_type_text,
+            aging_type=aging_type,
+            aging_description=fallback_aging_text,
+            strengths_intro=fallback_strengths_intro,
+            strengths_items=insight_strengths or analysis.get("strengths") or [],
+            changes_intro=fallback_changes_intro,
+            focus_phrase=focus_phrase,
+            facefitness_description=fallback_benefits_text,
+            facefitness_items=strategy or analysis.get("facefitness_benefits") or _benefits_fallback(aging_type),
+            forecast_items=fallback_forecast_items,
+            final_summary=fallback_final_text,
+            zones=zones,
+        )
 
     skin_age_value = _first_number(j_skin_age.get("age_value") or skin_age.get("estimated_range"), "32")
     return normalize_protocol_copy(

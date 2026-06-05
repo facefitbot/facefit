@@ -93,12 +93,66 @@ def simplify_report_language(value: Any, *, limit: int | None = None) -> str:
     for pattern, replacement in LANGUAGE_REPLACEMENTS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     text = re.sub(r"\s+([.,:;])", r"\1", text)
-    text = re.sub(r"\bтебе\b", "вам", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bтебя\b", "вас", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bтвой\b", "ваш", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bтвоя\b", "ваша", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bтвое\b|\bтвоё\b", "ваше", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bтвои\b", "ваши", text, flags=re.IGNORECASE)
+    replacements = [
+        (r"\bВы будете\b", "Ты будешь"),
+        (r"\bвы будете\b", "ты будешь"),
+        (r"\bВы получите\b", "Ты получишь"),
+        (r"\bвы получите\b", "ты получишь"),
+        (r"\bВы заметите\b", "Ты заметишь"),
+        (r"\bвы заметите\b", "ты заметишь"),
+        (r"\bВы видите\b", "Ты видишь"),
+        (r"\bвы видите\b", "ты видишь"),
+        (r"\bВы смотрели\b", "Ты смотрела"),
+        (r"\bвы смотрели\b", "ты смотрела"),
+        (r"\bВы ощущаете\b", "Ты ощущаешь"),
+        (r"\bвы ощущаете\b", "ты ощущаешь"),
+        (r"\bВы расслаблены\b", "Ты расслаблена"),
+        (r"\bвы расслаблены\b", "ты расслаблена"),
+        (r"\bВы начнёте\b", "Ты начнёшь"),
+        (r"\bвы начнёте\b", "ты начнёшь"),
+        (r"\bВы начнете\b", "Ты начнёшь"),
+        (r"\bвы начнете\b", "ты начнёшь"),
+        (r"\bУ вас\b", "У тебя"),
+        (r"\bу вас\b", "у тебя"),
+        (r"\bВ вашем случае\b", "В твоём случае"),
+        (r"\bв вашем случае\b", "в твоём случае"),
+        (r"\b[Вв]аше лицо\b", "твоё лицо"),
+        (r"\b[Вв]аш тип\b", "твой тип"),
+        (r"\b[Вв]аш результат\b", "твой результат"),
+        (r"\b[Вв]аш прогноз\b", "твой прогноз"),
+        (r"\b[Вв]аши зоны\b", "твои зоны"),
+        (r"\b[Вв]аши сильные стороны\b", "твои сильные стороны"),
+        (r"\bвашего\b", "твоего"),
+        (r"\bВашего\b", "Твоего"),
+        (r"\bвашему\b", "твоему"),
+        (r"\bВашему\b", "Твоему"),
+        (r"\bвашей\b", "твоей"),
+        (r"\bВашей\b", "Твоей"),
+        (r"\bвашим\b", "твоим"),
+        (r"\bВашим\b", "Твоим"),
+        (r"\bвашими\b", "твоими"),
+        (r"\bВашими\b", "Твоими"),
+        (r"\bваших\b", "твоих"),
+        (r"\bВаших\b", "Твоих"),
+        (r"\bвашу\b", "твою"),
+        (r"\bВашу\b", "Твою"),
+        (r"\bваше\b", "твоё"),
+        (r"\bВаше\b", "Твоё"),
+        (r"\bваша\b", "твоя"),
+        (r"\bВаша\b", "Твоя"),
+        (r"\bваш\b", "твой"),
+        (r"\bВаш\b", "Твой"),
+        (r"\bваши\b", "твои"),
+        (r"\bВаши\b", "Твои"),
+        (r"\bвам\b", "тебе"),
+        (r"\bВам\b", "Тебе"),
+        (r"\bвас\b", "тебя"),
+        (r"\bВас\b", "Тебя"),
+        (r"\bвы\b", "ты"),
+        (r"\bВы\b", "Ты"),
+    ]
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text)
     text = re.sub(r"\bлегкая легкая\b", "легкая", text, flags=re.IGNORECASE)
     text = re.sub(r"\bТип кожи:\s*", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s{2,}", " ", text).strip()
@@ -111,6 +165,23 @@ def simplify_report_language(value: Any, *, limit: int | None = None) -> str:
             words.append(word)
         text = (" ".join(words) or text[:limit]).rstrip(" .,:;") + "."
     return text
+
+
+def _with_name(name: str, text: Any, fallback: str = "") -> str:
+    body = simplify_report_language(text or fallback)
+    clean_name = _clean(name)
+    if not clean_name or clean_name == "Гость" or not body:
+        return body
+    if body.lower().startswith(clean_name.lower()):
+        return body
+    body = body[:1].lower() + body[1:] if body else body
+    return f"{clean_name}, {body}"
+
+
+def _first_meaningful_sentence(value: Any, fallback: str) -> str:
+    text = simplify_report_language(value)
+    parts = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+    return (parts[0].rstrip(" .") + ".") if parts else fallback
 
 
 def _walk_strings(value: Any, path: str = "") -> list[tuple[str, str]]:
@@ -155,20 +226,176 @@ def _items(value: Any, fallback: list[str], limit: int) -> list[str]:
     return result[:limit]
 
 
-def _protocol_from_sources(report: GeneratedReport | None, analysis_json: dict[str, Any], protocol_copy_json: dict[str, Any]) -> dict[str, Any]:
-    if report:
-        protocol = _current_protocol(report)
-        if protocol:
-            return protocol
-    candidates = [
+def _is_face_protocol_ai_output(value: dict[str, Any]) -> bool:
+    return {"bio_age", "skin_type", "aging_type", "zone_map", "changes_over_time"}.issubset(value.keys())
+
+
+def _split_forecast_item(value: Any, fallback_period: str) -> dict[str, str]:
+    text = _clean(value)
+    for separator in (" — ", " – ", " - ", ": "):
+        if separator in text:
+            period, description = text.split(separator, 1)
+            return {"period": _clean(period) or fallback_period, "text": _clean(description) or text}
+    return {"period": fallback_period, "text": text}
+
+
+def _protocol_ai_output_to_web_protocol(payload: dict[str, Any]) -> dict[str, Any]:
+    bio_age = _dict(payload.get("bio_age"))
+    skin_type = _dict(payload.get("skin_type"))
+    aging = _dict(payload.get("aging_type"))
+    zone_map = _dict(payload.get("zone_map"))
+    strengths = _dict(payload.get("strengths"))
+    changes = _dict(payload.get("changes_over_time"))
+    facefitness = _dict(payload.get("facefitness"))
+    forecast = _dict(payload.get("forecast"))
+    summary = _dict(payload.get("summary"))
+    meta = _dict(payload.get("meta"))
+
+    classification = normalize_aging_classification(
+        {"type_name": aging.get("name")},
+        fallback_text=" ".join([_clean(aging.get("name")), _clean(aging.get("description"))]),
+    )
+    type_id = classification["type_id"]
+    display_name = _clean(aging.get("name")) or classification["combined_label"] or classification["type_name"]
+    combo_type_ids = classification.get("combo_type_ids") or []
+    combo_type_names = classification.get("combo_type_names") or []
+
+    raw_zones = zone_map.get("zones") if isinstance(zone_map.get("zones"), list) else []
+    zones: list[dict[str, Any]] = []
+    for index, raw in enumerate([item for item in raw_zones if isinstance(item, dict)][:6], start=1):
+        status = _clean(raw.get("status")).lower()
+        if status not in {"green", "yellow", "orange", "red"}:
+            status = "yellow"
+        zones.append(
+            {
+                "id": f"ai_zone_{raw.get('id') or index}",
+                "number": int(raw.get("id") or index) if str(raw.get("id") or index).isdigit() else index,
+                "title": _clean(raw.get("name")) or f"Зона {index}",
+                "status": status,
+                "meaning": _clean(raw.get("meaning") or raw.get("description") or changes.get("intro")),
+                "anchor": raw.get("anchor") if isinstance(raw.get("anchor"), dict) else {},
+                "shape": raw.get("shape") if isinstance(raw.get("shape"), dict) else {},
+            }
+        )
+
+    forecast_periods = ["Через 2 недели", "Через 3–4 недели", "Через 6–8 недель"]
+    raw_forecast_items = forecast.get("items") if isinstance(forecast.get("items"), list) else []
+    forecast_items = [
+        _split_forecast_item(item, forecast_periods[min(index, 2)])
+        for index, item in enumerate(raw_forecast_items[:3])
+    ]
+    while len(forecast_items) < 3:
+        forecast_items.append({"period": forecast_periods[len(forecast_items)], "text": ""})
+
+    age_stages = [str(item) for item in changes.get("age_stages", []) if str(item or "").strip()] if isinstance(changes.get("age_stages"), list) else []
+    growth_items = [zone["title"] for zone in zones if zone["status"] in {"yellow", "orange", "red"}]
+
+    return {
+        "protocol_version": "bella_face_protocol_v4",
+        "client": {
+            "name": "",
+            "age": bio_age.get("passport_age") or bio_age.get("visual_age") or 30,
+            "date": "",
+        },
+        "skin_visual_age": {
+            "section_number": "01",
+            "title": "Биологический возраст кожи",
+            "passport_age": bio_age.get("passport_age") or bio_age.get("visual_age") or 30,
+            "visual_age": bio_age.get("visual_age") or bio_age.get("passport_age") or 30,
+            "skin_score": bio_age.get("skin_score"),
+            "text": _clean(bio_age.get("description")),
+        },
+        "skin_type": {
+            "section_number": "02",
+            "title": "Тип кожи",
+            "type_name": _clean(skin_type.get("name")),
+            "text": _clean(skin_type.get("description")),
+            "bullets": [_clean(skin_type.get("description"))],
+        },
+        "face_strengths": {
+            "section_number": "03",
+            "title": "Твои сильные стороны лица",
+            "text": _clean(strengths.get("intro")),
+            "bullets": [str(item) for item in strengths.get("items", []) if str(item or "").strip()] if isinstance(strengths.get("items"), list) else [],
+        },
+        "aging_type": {
+            "section_number": "04",
+            "title": "Тип старения",
+            "type_id": type_id,
+            "type_name": classification["type_name"],
+            "display_name": display_name,
+            "combo_type_ids": combo_type_ids,
+            "combo_type_names": combo_type_names,
+            "confidence": classification.get("confidence", "medium"),
+            "text": _clean(aging.get("description")),
+        },
+        "future_changes": {
+            "section_number": "05",
+            "title": "Какие изменения будут со временем",
+            "text": _clean(changes.get("intro")),
+            "bullets": age_stages,
+        },
+        "age_changes": {
+            "section_number": "06",
+            "title": "Возрастная траектория",
+            "text": "\n\n".join(age_stages),
+        },
+        "face_fitness_benefits": {
+            "section_number": "07",
+            "title": "Что даст фейс-фитнес",
+            "text": _clean(facefitness.get("description")),
+            "bullets": [str(item) for item in facefitness.get("items", []) if str(item or "").strip()] if isinstance(facefitness.get("items"), list) else [],
+        },
+        "time_forecast": {
+            "section_number": "08",
+            "title": "Прогноз по времени",
+            "intro": _clean(forecast.get("intro")) or "Если ты начнёшь заниматься по нашей системе:",
+            "items": forecast_items,
+        },
+        "growth_zones": {
+            "section_number": "09",
+            "title": "Зоны роста",
+            "summary": _clean(facefitness.get("description")),
+            "items": growth_items,
+            "priorities": [{"priority": index + 1, "zone": zone, "why": _clean(changes.get("intro"))} for index, zone in enumerate(growth_items[:3])],
+        },
+        "zone_map": {"title": "Карта зон лица", "zones": zones},
+        "final_summary": {
+            "text": _clean(summary.get("text")),
+            "quote": _clean(summary.get("quote")),
+        },
+        "meta": {
+            "main_segment": meta.get("main_segment") or "general_freshness",
+            "lead_temperature": meta.get("lead_temperature") or "warm",
+        },
+    }
+
+
+def _protocol_candidates_from_sources(
+    report: GeneratedReport | None,
+    analysis_json: dict[str, Any],
+    protocol_copy_json: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if report and report.analysis:
+        analysis = report.analysis
+        analysis_json = analysis.analysis_json if isinstance(analysis.analysis_json, dict) else analysis_json
+        protocol_copy_json = analysis.protocol_copy_json if isinstance(analysis.protocol_copy_json, dict) else protocol_copy_json
+    return [
         _dict(protocol_copy_json.get("strict_blocks")),
+        _dict(protocol_copy_json.get("face_protocol_ai_output")),
         _dict(protocol_copy_json.get("bella_protocol_v4")),
+        _dict(analysis_json.get("face_protocol_ai_output")),
         _dict(analysis_json.get("bella_protocol_v4")),
         _dict(analysis_json.get("strict_blocks")),
         _dict(analysis_json.get("bella_protocol")),
         analysis_json if analysis_json.get("protocol_version") == "bella_face_protocol_v4" else {},
     ]
-    for candidate in candidates:
+
+
+def _protocol_from_sources(report: GeneratedReport | None, analysis_json: dict[str, Any], protocol_copy_json: dict[str, Any]) -> dict[str, Any]:
+    for candidate in _protocol_candidates_from_sources(report, analysis_json, protocol_copy_json):
+        if candidate and _is_face_protocol_ai_output(candidate):
+            return _protocol_ai_output_to_web_protocol(candidate)
         if candidate and all(key in candidate for key in ("skin_visual_age", "skin_type", "face_strengths", "aging_type")):
             try:
                 return normalize_protocol_v4_shape(candidate)
@@ -193,7 +420,7 @@ COMPONENT_PUBLIC_COPY: dict[str, dict[str, str]] = {
         "characteristic": (
             "У этого сценария сильная сторона — лицо хорошо держит форму и овал. "
             "Но отдельные мышцы могут перенапрягаться: чаще всего лоб, межбровье, зона вокруг глаз и жевательная зона. "
-            "Из-за этого выражение иногда выглядит строже, чем вы ощущаете внутри."
+            "Из-за этого выражение иногда выглядит строже, чем ты ощущаешь внутри."
         ),
         "future": (
             "Если не расслаблять эти зоны, мимические линии могут становиться глубже и заметнее даже в спокойном лице. "
@@ -284,11 +511,11 @@ def _aging_public_characteristic(aging_id: str, aging_name: str, mixed_component
         names = " + ".join(_component_name(item) for item in mixed_components[:2])
         effects = [_component_effect(item) for item in mixed_components[:2]]
         return (
-            f"Ваш тип старения — комбинированный: {names}. "
+            f"Твой тип старения — комбинированный: {names}. "
             f"В нем соединяются два сценария: {effects[0]}; {effects[1]}. "
-            "Сейчас это выражено мягко, поэтому курс может сработать красиво: освежить взгляд, облегчить контур и сохранить вашу природную нежность."
+            "Сейчас это выражено мягко, поэтому курс может сработать красиво: освежить взгляд, облегчить контур и сохранить твою природную нежность."
         )
-    return f"Ваш тип старения — {aging_name}. {_component_copy(aging_id, 'characteristic')}"
+    return f"Твой тип старения — {aging_name}. {_component_copy(aging_id, 'characteristic')}"
 
 
 def _aging_public_future(aging_id: str, mixed_components: list[str]) -> str:
@@ -457,10 +684,10 @@ def _feature_profile(strengths: dict[str, Any], final_summary_text: str, fallbac
     return {
         "items": features[:5],
         "phrase": phrase,
-        "headline": f"У вас мягкое, женственное лицо: {phrase}.",
+        "headline": "В лице уже есть мягкая, женственная база и хороший ресурс для естественного результата.",
         "procedure_value": (
             f"{phrase.capitalize()} — это та природная база, которую многие стараются подчеркнуть процедурами. "
-            "В вашем случае задача курса не менять черты, а раскрыть их: сделать взгляд свежее, контур собраннее и общее впечатление моложе."
+            "В твоём случае задача курса не менять черты, а раскрыть их: сделать взгляд свежее, контур собраннее и общее впечатление моложе."
         ),
     }
 
@@ -500,7 +727,7 @@ def _course_result_sentence(zones: list[dict[str, Any]], feature_phrase: str) ->
         parts = ["лицо будет выглядеть свежее", "черты станут выразительнее"]
     return (
         f"В результате {', '.join(parts[:3])}. "
-        f"Это подчеркнет вашу природную базу: {feature_phrase.lower()}."
+        "Это подчеркнет природную базу без ощущения, что черты нужно менять."
     )
 
 
@@ -615,13 +842,13 @@ def _skin_story(skin_type_name: str, skin_type: dict[str, Any]) -> tuple[str, li
     skin_bullets = [str(item) for item in (skin_type.get("bullets") if isinstance(skin_type.get("bullets"), list) else [])[:3]]
     lowered = f"{skin_type_name} {text} {' '.join(skin_bullets)}".lower()
     if "комб" in lowered:
-        type_sentence = "У вас комбинированная кожа: центральная зона может быть активнее, а щекам часто нужно больше мягкости и увлажнения."
+        type_sentence = "У тебя комбинированная кожа: центральная зона может быть активнее, а щекам часто нужно больше мягкости и увлажнения."
     elif "сух" in lowered or "обезвож" in lowered:
-        type_sentence = "У вас кожа со склонностью к сухости и обезвоженности: ей важно давать достаточно влаги и не пересушивать уходом."
+        type_sentence = "У тебя кожа со склонностью к сухости и обезвоженности: ей важно давать достаточно влаги и не пересушивать уходом."
     elif "чувств" in lowered:
-        type_sentence = "У вас чувствительная кожа: ей лучше подходит спокойный, бережный уход без резких экспериментов."
+        type_sentence = "У тебя чувствительная кожа: ей лучше подходит спокойный, бережный уход без резких экспериментов."
     elif "жир" in lowered:
-        type_sentence = "У вас кожа с более активной центральной зоной: ей важно мягкое очищение и хорошее увлажнение без перегруза."
+        type_sentence = "У тебя кожа с более активной центральной зоной: ей важно мягкое очищение и хорошее увлажнение без перегруза."
     else:
         type_sentence = "По фото кожа выглядит ухоженной и достаточно ровной: это хорошая база для свежего, сияющего вида."
 
@@ -725,7 +952,7 @@ def _future_text(aging_id: str, mixed_components: list[str], zone_focus: str) ->
     without = _aging_public_future(aging_id, mixed_components)
     with_work = _aging_public_fitness(aging_id, mixed_components)
     if zone_focus:
-        with_work += f" В вашем случае акцент — {zone_focus.lower()}: через них быстрее всего возвращается свежесть."
+        with_work += f" В твоём случае акцент — {zone_focus.lower()}: через них быстрее всего возвращается свежесть."
     return simplify_report_language(without, limit=460), simplify_report_language(with_work, limit=540)
 
 
@@ -745,48 +972,44 @@ def _detail_items(
     zones: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     zone_names = [zone["name"] for zone in zones[:3]]
-    zone_reason = _human_join(zone_effects[:2], "зона глаз и овал быстрее дают ощущение усталости")
-    age_relation = "примерно на свой возраст"
-    if visual_age - passport_age >= 3:
-        age_relation = "чуть старше паспортного возраста"
-    elif visual_age - passport_age <= -3:
-        age_relation = "моложе паспортного возраста"
+    main_zones = _human_join(zone_names[:3], "зона глаз, овал и шея")
+    morning_focus = _human_join(zone_names[:2], "зона глаз и шея")
     return [
         {
             "key": "01",
-            "title": "Почему лицо может выглядеть чуть старше",
-            "body": f"Визуально лицо сейчас считывается примерно на {_years_phrase(visual_age)} — {age_relation}. Возраст добавляют не сами черты, а состояние зон: {zone_reason}. Если их мягко поддержать, лицо будет выглядеть свежее и спокойнее.",
-            "list": ["цель: более открытый взгляд", "эффект: лицо выглядит отдохнувшим, а не уставшим"],
+            "title": "Утренний старт на 5 минут",
+            "body": f"Начинай день с мягкого дыхания, шеи и зоны {morning_focus.lower()}. Это помогает лицу быстрее проснуться, убрать ощущение тяжести и подготовить ткани к упражнениям без лишнего напряжения.",
+            "list": ["1 минута спокойного дыхания", "2 минуты шея и плечи", "2 минуты мягкая работа с зоной глаз"],
         },
         {
             "key": "02",
-            "title": "Кожа и потенциал сияния",
-            "body": skin_story_text,
-            "list": ["цель: ровный тон, мягкость и сияние", "важно: не пересушивать кожу и держать стабильный уход"],
+            "title": "Основной фокус упражнений",
+            "body": f"Главная работа идёт через {main_zones.lower()}. Сначала снимаем лишнее напряжение и поддерживаем отток, затем добавляем мягкий тонус, чтобы лицо выглядело свежее и собраннее.",
+            "list": ["не давить сильно", "не тянуть кожу", "работать медленно и регулярно"],
         },
         {
             "key": "03",
-            "title": "Что уже красиво от природы",
-            "body": strengths_text,
-            "list": [f"сильная база: {feature_phrase}", "задача курса: подчеркнуть это, а не менять лицо"],
+            "title": "Вечернее расслабление",
+            "body": "Вечером важнее не тренировать лицо на силу, а мягко снять накопленное напряжение. Особенно хорошо работают спокойные движения по лбу, межбровью, жевательной зоне и шее.",
+            "list": ["3 минуты расслабления", "без активного растяжения", "после ухода или перед сном"],
         },
         {
             "key": "04",
-            "title": "Тип старения",
-            "body": _aging_public_characteristic(aging_id, aging_name, mixed_components),
-            "list": [simplify_report_language(_aging_public_control(aging_id, mixed_components), limit=220)],
+            "title": "Уход, который поддержит результат",
+            "body": skin_story_text,
+            "list": ["мягкое очищение", "стабильное увлажнение", "без пересушивания и резких экспериментов"],
         },
         {
             "key": "05",
-            "title": "Что важно не запускать",
-            "body": _aging_public_future(aging_id, mixed_components),
-            "list": ["смысл не в страхе, а в ранней поддержке", "пока изменения мягкие, лицо быстрее отвечает на регулярность"],
+            "title": "Ритм на неделю",
+            "body": "Лучше коротко, но регулярно: лицу важна последовательность, а не редкие длинные занятия. Для старта достаточно 4-5 практик в неделю и одного спокойного дня без активной нагрузки.",
+            "list": ["4-5 раз в неделю", "10-15 минут", "один день мягкого восстановления"],
         },
         {
             "key": "06",
-            "title": "Как курс будет работать именно для вас",
-            "body": f"{_aging_public_fitness(aging_id, mixed_components)} {course_result}",
-            "list": ["взгляд свежее", "контур собраннее", "сильные стороны заметнее"],
+            "title": "Как понять, что ты идёшь верно",
+            "body": f"Ориентир не в резком эффекте, а в том, что лицо постепенно выглядит спокойнее, легче и свежее. {course_result}",
+            "list": ["меньше утренней тяжести", "мягче выражение лица", "контур читается аккуратнее"],
         },
     ]
 
@@ -938,15 +1161,22 @@ def build_bella_web_report_v6_view_model(
     zone_effect_sentence = _human_join(zone_effects[:2], "зона глаз и овал быстрее дают ощущение усталости")
     course_result = _course_result_sentence(priority_zone_cards, feature_phrase)
     visual_reason = zone_effect_sentence
-    hero_conclusion = (
-        f"{feature_profile['headline']} "
-        f"Визуально сейчас около {_years_phrase(visual_age)}: возраст добавляют не ваши черты, а то, что {visual_reason}. "
-        "Если мягко поработать с этими зонами, лицо будет выглядеть свежее, моложе и ваши природные сильные стороны раскроются ярче."
+    hero_source = _block_text(protocol, "skin_visual_age")
+    hero_conclusion = _with_name(
+        lead_name,
+        hero_source,
+        (
+            f"по фото первое впечатление мягкое и свежее. Визуально сейчас около {_years_phrase(visual_age)}: возраст добавляют не черты, "
+            f"а то, что {visual_reason}. Если мягко поддержать эти зоны, лицо будет выглядеть легче, спокойнее и моложе."
+        ),
     )
-    current_text = (
-        f"По фото первое впечатление очень приятное: {feature_phrase.lower()} создают мягкий, женственный образ. "
-        f"Сейчас в фокусе — {zone_reading_subject}: именно здесь лицо быстрее считывается уставшим. "
-        "Это хорошая точка роста — при регулярной работе результат заметен без изменения черт."
+    current_text = _with_name(
+        lead_name,
+        "",
+        (
+            f"сейчас лучше всего начинать с зоны «{zone_reading_subject}». Именно она быстрее всего влияет на то, насколько лицо выглядит "
+            "отдохнувшим в обычной жизни. Хорошая новость в том, что изменения пока мягкие, поэтому регулярная работа может дать очень естественный результат."
+        ),
     )
     appearance_cards = [
         {
@@ -963,14 +1193,14 @@ def build_bella_web_report_v6_view_model(
     )
     potential_items = [
         {"title": "Выглядеть свежее", "text": "Взгляд меньше считывается уставшим, лицо выглядит легче уже по первому впечатлению.", "ico": "eye"},
-        {"title": "Раскрыть природную красоту", "text": f"Курс помогает подчеркнуть то, что уже красиво: {feature_phrase.lower()}.", "ico": "sparkle"},
+        {"title": "Раскрыть природную красоту", "text": "Курс помогает не менять черты, а вернуть лицу состояние отдыха, мягкости и живого тонуса.", "ico": "sparkle"},
         {"title": "Собрать контур", "text": "Овал и нижняя треть выглядят аккуратнее, поэтому лицо воспринимается моложе.", "ico": "shape"},
         {"title": "Начать в правильный момент", "text": "Пока изменения мягкие, их проще удержать и красиво направить регулярной работой.", "ico": "clock"},
     ]
     benefits_items = [_course_benefit_for_zone(zone) for zone in priority_zone_cards[:3]]
     benefits_items.extend(
         [
-            {"title": "Черты выразительнее", "text": f"Фейсфитнес раскрывает ваши сильные стороны: {feature_phrase.lower()}.", "ico": "sparkle"},
+            {"title": "Черты выразительнее", "text": "Фейсфитнес помогает лицу выглядеть более живым: взгляд открывается, выражение становится мягче, контур читается спокойнее.", "ico": "sparkle"},
             {"title": "Кожа ухоженнее", "text": "Лицо выглядит ровнее и свежее, потому что уход и упражнения работают в одном направлении.", "ico": "drop"},
             {"title": "Замедление возрастных изменений", "text": "Регулярность помогает дольше сохранять молодость, свежесть и природную форму лица.", "ico": "clock"},
         ]
@@ -1038,8 +1268,8 @@ def build_bella_web_report_v6_view_model(
             "potential": {
                 "level": "Что изменится визуально",
                 "text": (
-                    f"Ваш результат — не другое лицо, а более свежая и отдохнувшая версия вас. "
-                    f"Когда эти зоны выглядят легче, сильнее раскрываются {feature_phrase.lower()}."
+                    "Твой результат — не другое лицо, а более свежая и отдохнувшая версия тебя. "
+                    "Когда ключевые зоны выглядят легче, лицо воспринимается мягче, моложе и естественно ухоженнее."
                 ),
                 "items": potential_items,
                 "cta_text": cta_text,
@@ -1052,10 +1282,10 @@ def build_bella_web_report_v6_view_model(
             "legend": {"good": "Все хорошо", "attention": "Зона внимания", "priority": "Приоритет"},
             "zones": canonical_zones,
         },
-        "benefits": {"title": "Что фейсфитнес даст именно вам", "items": deduped_benefits},
+        "benefits": {"title": "Что фейсфитнес даст именно тебе", "items": deduped_benefits},
         "early_changes": {
-            "title": "Что вы можете заметить первым",
-            "intro": "Первые изменения обычно выглядят очень естественно: вы видите в зеркале то же лицо, но более свежее, легкое и отдохнувшее.",
+            "title": "Что ты можешь заметить первым",
+            "intro": "Первые изменения обычно выглядят очень естественно: ты видишь в зеркале то же лицо, но более свежее, легкое и отдохнувшее.",
             "items": early_items,
         },
         "future": {
@@ -1064,7 +1294,7 @@ def build_bella_web_report_v6_view_model(
             "with_work": with_work,
             "age_forecast": {
                 "target_range": f"{max(20, client_age // 10 * 10)}–{max(30, client_age // 10 * 10 + 10)}",
-                "label": "Ваш понятный прогноз",
+                "label": "Твой понятный прогноз",
                 "text": (
                     f"Сейчас хороший момент поддержать {zone_reading_object}. "
                     f"Пока изменения мягкие, курс может дать самый красивый эффект: {course_result}"
@@ -1094,14 +1324,18 @@ def build_bella_web_report_v6_view_model(
         "final_cta": {
             "label": "Итог",
             "title": "Раскрыть красоту, <em>которая уже есть</em>",
-            "text": (
-                f"{feature_profile['headline']} Сейчас важно поддержать {zone_reading_object}, чтобы лицо выглядело свежее, моложе и выразительнее. "
-                "Курс помогает сделать взгляд легче, контур собраннее и общее впечатление более отдохнувшим. "
-                "Именно для этого создан курс Bella Vladi FaceLifting."
+            "text": _with_name(
+                lead_name,
+                "",
+                (
+                    f"сейчас важно поддержать {zone_reading_object}, чтобы лицо выглядело свежее, моложе и выразительнее. "
+                    "Курс помогает сделать взгляд легче, контур собраннее и общее впечатление более отдохнувшим. "
+                    "Именно для этого создан курс Bella Vladi FaceLifting."
+                ),
             ),
             "button_text": cta_text,
             "url": cta_url,
-            "note": "В программе вы получите упражнения под ваши зоны и понятную регулярность, которая помогает увидеть результат в зеркале.",
+            "note": "В программе ты получишь упражнения под твои зоны и понятную регулярность, которая помогает увидеть результат в зеркале.",
         },
         "footer": "Bella Vladi · Face Protocol · Это предварительный визуальный AI-разбор по фото. Не медицинское заключение и не замена консультации специалиста.",
         "meta": {"main_segment": canonical_zones[0]["key"] if canonical_zones else "", "lead_temperature": "warm"},
@@ -1115,8 +1349,8 @@ def build_bella_web_report_v6_view_model(
             "uses_face_protocol_image": bool(face_protocol_url),
             "uses_zone_map_crop": bool(zone_map_crop_url),
             "uses_original_photo_zone_overlay": not bool(zone_map_crop_url) and bool(zone_map_photo_url),
-            "zone_map_inserted_in_hero": True,
-            "zone_map_inserted_in_story": True,
+            "zone_map_inserted_in_hero": False,
+            "zone_map_inserted_in_story": False,
             "zone_map_inserted_in_map_block": True,
             "passport_age": passport_age,
             "visual_age": visual_age,

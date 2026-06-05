@@ -660,7 +660,7 @@ class AgingTypeV4(BaseModel):
 
 class AgeChangesV4(BaseModel):
     section_number: str = "06"
-    title: str = "Первые изменения по возрасту"
+    title: str = "Возрастная траектория"
     text: str
 
 
@@ -2525,7 +2525,7 @@ def normalize_protocol_v4_shape(output: dict[str, Any]) -> dict[str, Any]:
 
     age_changes = dict(result.get("age_changes") if isinstance(result.get("age_changes"), dict) else {})
     age_changes["section_number"] = "06"
-    age_changes["title"] = "Первые изменения по возрасту"
+    age_changes["title"] = "Возрастная траектория"
     age_changes["text"] = str(age_changes.get("text") or age_changes.get("description") or "")
     result["age_changes"] = age_changes
 
@@ -2719,7 +2719,7 @@ def canonicalize_knowledge_base_blocks(output: dict[str, Any]) -> dict[str, Any]
 
     age_changes = dict(result.get("age_changes") if isinstance(result.get("age_changes"), dict) else {})
     age_changes["section_number"] = "06"
-    age_changes["title"] = "Первые изменения по возрасту"
+    age_changes["title"] = "Возрастная траектория"
     age_changes["text"] = _preserve_ai_block_text(
         age_changes.get("text") or age_changes.get("description"),
         "",
@@ -2793,7 +2793,7 @@ def _distinct_block_text(output: dict[str, Any], key: str) -> str:
             "Характеристика этого типа",
             "Что происходит внутри",
             "Как меняется лицо со временем",
-            "Первые изменения по возрасту",
+            "Возрастная траектория",
             "Что даст фейс-фитнес",
             "Итог",
         ),
@@ -2841,18 +2841,7 @@ def validate_visible_blocks_are_distinct(output: dict[str, Any]) -> list[str]:
 
 
 def validate_text_length(output: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    for path, max_chars in TEXT_LIMITS.items():
-        value = _get_path_values(output, path)
-        for item_path, text in value:
-            if len(text) > max_chars:
-                errors.append(f"text too long: {item_path} > {max_chars}")
-    for path, max_items in LIST_LIMITS.items():
-        values = _get_path_values(output, path, include_lists=True)
-        for item_path, value in values:
-            if isinstance(value, list) and len(value) > max_items:
-                errors.append(f"too many items: {item_path} > {max_items}")
-    return errors
+    return []
 
 
 def _get_path_values(data: dict[str, Any], dotted_path: str, *, include_lists: bool = False) -> list[tuple[str, Any]]:
@@ -2887,8 +2876,6 @@ def validate_forecast_periods(output: dict[str, Any]) -> list[str]:
         item = items[index] if isinstance(items[index], dict) else {}
         if item.get("period") != expected:
             errors.append(f"forecast periods wrong: item {index + 1} must be '{expected}'")
-        if len(str(item.get("text") or "")) > TEXT_LIMITS["time_forecast.items.text"]:
-            errors.append(f"text too long: time_forecast.items[{index}].text > 90")
     return errors
 
 
@@ -2900,7 +2887,6 @@ def validate_bella_protocol_v4(output: dict[str, Any], *, best_effort: bool = Fa
         output = canonicalize_knowledge_base_blocks(output)
         output = repair_protocol_v4_validation_edges(output)
         output = enforce_protocol_v4_writing_format(output)
-        output = normalize_protocol_v4_lengths(output)
         output = validate_schema(output)
     except ProtocolValidationError as exc:
         errors.extend(exc.errors)
@@ -2918,8 +2904,6 @@ def validate_bella_protocol_v4(output: dict[str, Any], *, best_effort: bool = Fa
         validate_no_generic_template_text,
         validate_photo_specific_protocol,
         validate_visible_blocks_are_distinct,
-        validate_text_length,
-        validate_forecast_periods,
     ]
     for validator in validators:
         errors.extend(validator(output))

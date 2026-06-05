@@ -336,7 +336,8 @@ def analyze_face(
 
     retry_prompt = (
         f"{user_text}\n\n"
-        "Предыдущий JSON не прошел validation. Исправь только JSON и верни полный объект bella_face_protocol_v4.\n"
+        "Предыдущий JSON не прошел validation. Исправь только JSON и верни полный объект по новой схеме: "
+        "bio_age, skin_type, aging_type, zone_map, strengths, changes_over_time, facefitness, forecast, summary, meta.\n"
         "Конкретные ошибки:\n- "
         + "\n- ".join(first_errors[:12])
         + "\n\nПредыдущий JSON:\n"
@@ -731,25 +732,16 @@ def generate_protocol_slide_copy(analysis_json: dict[str, Any], selected_problem
                                     ],
                                 },
                                 "summary": {
-                                    "skin_age": "до 95 символов",
-                                    "skin_type": "до 95 символов",
-                                    "aging_type": "до 95 символов",
-                                    "strengths": "до 95 символов",
+                                    "skin_age": "тёплый вывод о возрасте кожи",
+                                    "skin_type": "тёплый вывод о типе кожи",
+                                    "aging_type": "тёплый вывод о типе старения",
+                                    "strengths": "тёплый вывод о сильных сторонах",
                                 },
                                 "plan": {
-                                    "causes": ["до 55 символов"],
-                                    "benefits": ["до 24 символов"],
-                                    "forecast": ["до 38 символов"],
+                                    "causes": ["причина и мягкий маршрут"],
+                                    "benefits": ["конкретная польза"],
+                                    "forecast": ["мягкий прогноз"],
                                 },
-                            },
-                            "limits": {
-                                "zone_label": 14,
-                                "main_focus_item": 18,
-                                "summary_card_text": 78,
-                                "main_conclusion": 92,
-                                "causes_bullet": 55,
-                                "benefits_chip": 24,
-                                "forecast_item": 38,
                             },
                             "analysis_json": analysis_json,
                             "selected_problems": selected_problems,
@@ -791,32 +783,6 @@ def generate_protocol_copy(
                     + json.dumps(
                         {
                             "schema": EXAMPLE_PROTOCOL_COPY,
-                            "limits": {
-                                "skin_age.comment": 110,
-                                "skin_type.title": 42,
-                                "skin_type.bullet": 75,
-                                "face_aging.face_strengths": 62,
-                                "face_aging.aging_type": 78,
-                                "face_aging.forecast": 3,
-                                "face_aging.forecast_item": 82,
-                                "face_aging.strong_base": 110,
-                                "aging.bullet": 95,
-                                "why_intro": 180,
-                                "causes": 4,
-                                "cause.bullet": 95,
-                                "why_outro": 170,
-                                "strengths": 3,
-                                "strength.bullet": 75,
-                                "benefits": 3,
-                                "benefit.bullet": 75,
-                                "benefits_outro": 130,
-                                "forecast": 3,
-                                "forecast.bullet": 75,
-                                "growth_zones": 5,
-                                "growth_zone.label": 22,
-                                "final_summary": 170,
-                                "zone.label": 22,
-                            },
                             "analysis_json": analysis_json,
                             "personal_insight_json": personal_insight_json or {},
                             "selected_problems": selected_problems,

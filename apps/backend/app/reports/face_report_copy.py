@@ -120,7 +120,7 @@ def report_status(value: Any = None, color: Any = None) -> str:
     color_text = clean_report_text(color).lower()
     if text in {"good", "green", "всё хорошо", "все хорошо", "сильная зона"} or color_text in {"green", "зелёный", "зеленый"}:
         return "good"
-    if text in {"priority", "red", "приоритет", "active", "active_focus", "активный фокус"} or color_text in {"red", "красный", "orange", "оранжевый"}:
+    if text in {"priority", "red", "orange", "приоритет", "active", "active_focus", "активный фокус", "оранжевый"} or color_text in {"red", "красный", "orange", "оранжевый"}:
         return "priority"
     return "attention"
 

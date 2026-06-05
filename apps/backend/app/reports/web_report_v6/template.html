@@ -514,7 +514,7 @@ button{font:inherit;cursor:pointer;border:0;background:transparent;color:inherit
   background:var(--ivory);
 }
 .topbar .row{
-  display:flex;align-items:center;justify-content:center;gap:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
 }
 .brand{display:flex;align-items:center;gap:14px}
 .brand .mark{
@@ -569,6 +569,7 @@ button{font:inherit;cursor:pointer;border:0;background:transparent;color:inherit
 /* ───────── Sections ───────── */
 section{padding:clamp(56px,7vw,96px) 0;position:relative}
 section + section{border-top:1px solid var(--line)}
+.chapter-anchor{scroll-margin-top:96px}
 .sec-head{margin-bottom:36px}
 
 /* ═══════════ 0 · HERO ═══════════ */
@@ -665,6 +666,25 @@ section + section{border-top:1px solid var(--line)}
   text-align:center;padding:24px;color:var(--ink-3);font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;
 }
 .hero-photo .fallback .ttl{color:var(--bronze-2);font-family:var(--display);font-style:italic;font-size:22px;letter-spacing:0;font-weight:500;text-transform:none}
+.face-silhouette{
+  width:min(56%,220px);
+  aspect-ratio:3/4;
+  border-radius:50% 50% 46% 46%;
+  background:
+    radial-gradient(ellipse 18% 6% at 38% 42%, rgba(95,73,63,.35), transparent 70%),
+    radial-gradient(ellipse 18% 6% at 62% 42%, rgba(95,73,63,.35), transparent 70%),
+    radial-gradient(ellipse 42% 72% at 50% 48%, rgba(238,199,169,.92), rgba(207,173,144,.76) 68%, rgba(169,119,63,.18) 100%);
+  box-shadow:inset 0 0 0 2px rgba(168,119,63,.14), 0 18px 44px -26px rgba(70,50,25,.34);
+}
+.face-silhouette::after{
+  content:"";
+  display:block;
+  width:44%;
+  height:12%;
+  margin:62% auto 0;
+  border-bottom:3px solid rgba(133,86,73,.28);
+  border-radius:50%;
+}
 .hero-stamp{
   position:absolute;bottom:18px;left:18px;right:18px;
   background:rgba(253,248,236,.92);backdrop-filter:blur(8px);
@@ -1156,8 +1176,7 @@ footer{
           <div class="hero-photo">
             <img data-protocol-image="" data-slot="hero-img" alt="Фото клиента">
             <div class="fallback" data-slot="hero-img-fb">
-              <div class="ttl">Ваше фото</div>
-              <div>Загружается персональный разбор</div>
+              <div class="face-silhouette"></div>
             </div>
             <div class="zone-markers" data-slot="hero-markers"></div>
             <div class="hero-stamp">
@@ -1181,23 +1200,7 @@ footer{
         <h2 class="h2" data-slot="story-title"></h2>
         <p class="lead" data-slot="story-text"></p>
       </div>
-      <div class="story-layout">
-        <div class="story-map">
-          <div class="zm-photo">
-            <img data-protocol-image="" data-slot="story-map-img" alt="Карта зон лица">
-            <div class="fallback" data-slot="story-map-fb">
-              <div class="ttl">Карта зон</div>
-              <div>Подождите несколько секунд</div>
-            </div>
-            <div class="zone-markers" data-slot="story-map-markers"></div>
-          </div>
-          <div class="story-map-caption">
-            <b>Карта по фото</b>
-            Эти же зоны используются в PNG-протоколе и в подробной расшифровке ниже.
-          </div>
-        </div>
-        <div class="cards-3" data-slot="story-cards"></div>
-      </div>
+      <div class="cards-3" data-slot="story-cards"></div>
     </div>
   </section>
 
@@ -1219,7 +1222,7 @@ footer{
   <section id="potential" data-chap="potential">
     <div class="wrap">
       <div class="sec-head">
-        <div class="eyebrow"><span class="num">03</span><span>Ваш результат</span></div>
+        <div class="eyebrow"><span class="num">03</span><span>Твой результат</span></div>
         <div class="potential-head">
           <div class="potential-level" data-slot="potential-level"></div>
           <p class="potential-text" data-slot="potential-text"></p>
@@ -1229,7 +1232,7 @@ footer{
 
       <div class="cta-after-potential">
         <div class="tx">
-          Хотите работать именно с <em>вашими зонами?</em>
+          Хочешь работать именно с <em>твоими зонами?</em>
         </div>
         <button class="btn btn-primary" data-slot="potential-cta" type="button">
           <span data-slot="potential-cta-text"></span>
@@ -1245,14 +1248,13 @@ footer{
       <div class="sec-head">
         <div class="eyebrow"><span class="num">04</span><span>Карта зон лица</span></div>
         <h2 class="h2">Шесть зон, которые формируют <em>впечатление</em></h2>
-        <p class="lead">Карта повторяет ваш фото-протокол: одни и те же зоны, одни и те же статусы.</p>
+        <p class="lead">Это единственная карта зон в веб-отчёте: здесь видны номера, статусы и расшифровка.</p>
       </div>
       <div class="map-grid">
         <div class="zm-photo">
           <img data-protocol-image="" data-slot="map-img" alt="Карта зон">
           <div class="fallback" data-slot="map-fb">
-            <div class="ttl">Карта зон</div>
-            <div>Подождите несколько секунд</div>
+            <div class="face-silhouette"></div>
           </div>
           <div class="zone-markers" data-slot="map-markers"></div>
         </div>
@@ -1264,31 +1266,13 @@ footer{
     </div>
   </section>
 
-  <!-- ═══════════ 4.5 · PROFILE (optional) ═══════════ -->
-  <section id="profile" data-chap="profile" data-slot="profile-section" style="display:none">
-    <div class="wrap">
-      <div class="sec-head">
-        <div class="eyebrow"><span class="num">·</span><span>Профиль</span></div>
-        <h2 class="h2" data-slot="profile-title">Профиль · овал и шея</h2>
-        <p class="lead" data-slot="profile-summary"></p>
-      </div>
-      <div class="map-grid">
-        <div class="zm-photo">
-          <img data-protocol-image="" data-slot="profile-img" alt="Фото в профиль">
-          <div class="fallback" data-slot="profile-fb"><div class="ttl">Профиль</div><div>Фото загружается</div></div>
-        </div>
-        <div class="zm-side" data-slot="profile-cards"></div>
-      </div>
-    </div>
-  </section>
-
   <!-- ═══════════ 5 · BENEFITS ═══════════ -->
   <section id="benefits" data-chap="benefits">
     <div class="wrap">
       <div class="sec-head">
         <div class="eyebrow"><span class="num">05</span><span>Что даст курс</span></div>
         <h2 class="h2" data-slot="benefits-title"></h2>
-        <p class="lead">Простыми словами: какие изменения вы будете искать в зеркале.</p>
+        <p class="lead">Простыми словами: какие изменения ты будешь искать в зеркале.</p>
       </div>
       <div class="benefits-grid" data-slot="benefits-grid"></div>
     </div>
@@ -1304,33 +1288,29 @@ footer{
       </div>
       <div class="early-grid" data-slot="early-grid"></div>
 
-      <div class="sec-head" style="margin-top:8px">
-        <div class="eyebrow"><span>Со временем</span></div>
-        <h2 class="h2" data-slot="future-title"></h2>
-      </div>
-      <div class="scenarios">
-        <div class="scenario without">
-          <div class="lbl"><span class="dot"></span>Без регулярной работы</div>
-          <div class="ttl">Возрастные изменения могут усилиться</div>
-          <div class="txt" data-slot="future-without"></div>
+      <div id="future-scenarios" class="chapter-anchor" data-chap="future-scenarios">
+        <div class="sec-head" style="margin-top:8px">
+          <div class="eyebrow"><span class="num">07</span><span>Какие изменения будут со временем</span></div>
+          <h2 class="h2" data-slot="future-title"></h2>
         </div>
-        <div class="scenario with">
-          <div class="lbl"><span class="dot"></span>При регулярной работе</div>
-          <div class="ttl">Лицо выглядит свежее</div>
-          <div class="txt" data-slot="future-with"></div>
+        <div class="scenarios">
+          <div class="scenario without">
+            <div class="lbl"><span class="dot"></span>Без регулярной работы</div>
+            <div class="ttl">Возрастные изменения могут усилиться</div>
+            <div class="txt" data-slot="future-without"></div>
+          </div>
+          <div class="scenario with">
+            <div class="lbl"><span class="dot"></span>При регулярной работе</div>
+            <div class="ttl">Лицо выглядит свежее</div>
+            <div class="txt" data-slot="future-with"></div>
+          </div>
         </div>
+        <div class="forecast-personal">
+          <div class="lbl" data-slot="forecast-lbl"></div>
+          <div class="tx" data-slot="forecast-text"></div>
+        </div>
+        <div class="age-cards" data-slot="age-cards"></div>
       </div>
-
-      <!-- AGE FORECAST (slot of same section, sub-block) -->
-      <div class="sec-head" style="margin-top:8px">
-        <div class="eyebrow"><span>Ближайшие годы</span></div>
-        <h2 class="h2">Ваш <em>прогноз</em> на ближайшие годы</h2>
-      </div>
-      <div class="forecast-personal">
-        <div class="lbl" data-slot="forecast-lbl"></div>
-        <div class="tx" data-slot="forecast-text"></div>
-      </div>
-      <div class="age-cards" data-slot="age-cards"></div>
     </div>
   </section>
 
@@ -1338,9 +1318,9 @@ footer{
   <section id="details" data-chap="details">
     <div class="wrap">
       <div class="sec-head">
-        <div class="eyebrow"><span class="num">07</span><span>Персональный план</span></div>
-        <h2 class="h2">Что делать <em>именно вам</em></h2>
-        <p class="lead">Коротко и понятно: что видно по фото, почему это важно и какой результат должен дать курс.</p>
+        <div class="eyebrow"><span class="num">08</span><span>Персональный план</span></div>
+        <h2 class="h2">Что делать <em>именно тебе</em></h2>
+        <p class="lead">Коротко и практично: утро, вечер, зоны и ритм занятий.</p>
       </div>
       <div class="details-list" data-slot="details-list"></div>
     </div>
@@ -1386,9 +1366,11 @@ const PLACEHOLDER = (variant) => {
         <stop offset='100%' stop-color='${cols[2]}'/>
       </radialGradient></defs>
       <rect width='400' height='460' fill='url(#g)'/>
-      <ellipse cx='200' cy='210' rx='100' ry='130' fill='${cols[2]}' opacity='.55'/>
-      <ellipse cx='200' cy='185' rx='75' ry='95' fill='${cols[2]}' opacity='.35'/>
-      <text x='200' y='438' text-anchor='middle' fill='#7a6855' font-family='monospace' font-size='10' letter-spacing='2'>${variant.toUpperCase()} · PLACEHOLDER</text>
+      <ellipse cx='200' cy='212' rx='102' ry='132' fill='${cols[2]}' opacity='.46'/>
+      <ellipse cx='158' cy='192' rx='24' ry='8' fill='#6f584b' opacity='.30'/>
+      <ellipse cx='242' cy='192' rx='24' ry='8' fill='#6f584b' opacity='.30'/>
+      <path d='M165 274 Q200 304 235 274' fill='none' stroke='#8b6859' stroke-width='7' stroke-linecap='round' opacity='.25'/>
+      <path d='M128 148 Q200 112 272 148' fill='none' stroke='#8b6859' stroke-width='10' stroke-linecap='round' opacity='.18'/>
     </svg>`
   );
 };
@@ -1490,8 +1472,9 @@ function el(tag, cls, text){
 function setImage(imgElement, imageUrl, fallbackElement, objectPosition){
   if (!imgElement || !fallbackElement) return;
   if (!imageUrl){
-    imgElement.style.display = "none";
-    fallbackElement.style.display = "flex";
+    imgElement.src = PLACEHOLDER("face");
+    imgElement.style.display = "block";
+    fallbackElement.style.display = "none";
     return;
   }
   imgElement.src = imageUrl;
@@ -1499,8 +1482,9 @@ function setImage(imgElement, imageUrl, fallbackElement, objectPosition){
   fallbackElement.style.display = "none";
   if (objectPosition) imgElement.style.objectPosition = objectPosition;
   imgElement.onerror = () => {
-    imgElement.style.display = "none";
-    fallbackElement.style.display = "flex";
+    imgElement.src = PLACEHOLDER("face");
+    imgElement.style.display = "block";
+    fallbackElement.style.display = "none";
   };
 }
 
@@ -1530,7 +1514,8 @@ const CHAPTERS = [
   { id:"map",           num:"04", label:"Карта" },
   { id:"benefits",      num:"05", label:"Курс" },
   { id:"future",        num:"06", label:"Прогноз" },
-  { id:"details",       num:"07", label:"План" },
+  { id:"future-scenarios", num:"07", label:"Со временем" },
+  { id:"details",       num:"08", label:"План" },
   { id:"final",         num:"·",  label:"Итог" }
 ];
 
@@ -1551,7 +1536,7 @@ function renderNav(){
 function initScrollSpy(){
   const links = $$('.chapter-nav a');
   const map = new Map(links.map(l => [l.dataset.target, l]));
-  const sections = $$('section[data-chap]').filter(s => map.has(s.id));
+  const sections = $$('[data-chap]').filter(s => map.has(s.id));
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting){
@@ -1598,7 +1583,7 @@ function renderHero(data){
   setText("hero-conclusion", h.personal_conclusion);
   setText("hero-cta-text", h.cta_text);
   setText("report-version", "");
-  setText("hero-stamp-text", "Карта зон лица");
+  setText("hero-stamp-text", "Фото для разбора");
 
   const bWrap = $('[data-slot="hero-badges"]');
   bWrap.innerHTML = "";
@@ -1611,12 +1596,12 @@ function renderHero(data){
 
   setImage(
     $('[data-slot="hero-img"]'),
-    zoneMapImageUrl(data),
+    data.images?.original_photo_url || "",
     $('[data-slot="hero-img-fb"]'),
     data.images?.face_object_position
   );
-  setProtocolCropMode($('[data-slot="hero-img"]'), zm.image_mode);
-  renderZoneMarkers($('[data-slot="hero-markers"]'), zones, zm.image_mode);
+  setProtocolCropMode($('[data-slot="hero-img"]'), "portrait");
+  renderZoneMarkers($('[data-slot="hero-markers"]'), [], "portrait");
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1624,18 +1609,8 @@ function renderHero(data){
 // ════════════════════════════════════════════════════════════════════
 function renderStory(data){
   const s = data.story?.current_appearance || {};
-  const zm = data.zone_map || {};
-  const zones = normalizeZones(zm.zones || []);
   setText("story-title", s.title);
   setText("story-text",  s.text);
-  setImage(
-    $('[data-slot="story-map-img"]'),
-    zoneMapImageUrl(data),
-    $('[data-slot="story-map-fb"]'),
-    data.images?.face_object_position
-  );
-  setProtocolCropMode($('[data-slot="story-map-img"]'), zm.image_mode);
-  renderZoneMarkers($('[data-slot="story-map-markers"]'), zones, zm.image_mode);
   const host = $('[data-slot="story-cards"]');
   host.innerHTML = "";
   (s.cards || []).forEach(c => {
@@ -1730,31 +1705,6 @@ function renderZoneMap(data){
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 4.5 · PROFILE (optional side photo)
-// ════════════════════════════════════════════════════════════════════
-function renderProfile(data){
-  const section = $('[data-slot="profile-section"]');
-  const p = data.profile;
-  if (!p || !p.image_url){ if (section) section.style.display = "none"; return; }
-  if (section) section.style.display = "";
-  setText("profile-title", p.title || "Профиль · овал и шея");
-  setText("profile-summary", p.summary || "");
-  setImage($('[data-slot="profile-img"]'), p.image_url, $('[data-slot="profile-fb"]'), null);
-  setProtocolCropMode($('[data-slot="profile-img"]'), "protocol_crop");
-  const host = $('[data-slot="profile-cards"]');
-  host.innerHTML = "";
-  [["Линия челюсти и овал", p.jawline, "shape"], ["Подбородок и шея", p.chin_neck, "drop"]].forEach(([title, text, ico]) => {
-    if (!text) return;
-    const card = el("div","card");
-    const icon = el("div","icon"); icon.innerHTML = ICONS[ico] || ICONS.sparkle;
-    card.appendChild(icon);
-    card.appendChild(el("h3","", title));
-    card.appendChild(el("p","", text));
-    host.appendChild(card);
-  });
-}
-
-// ════════════════════════════════════════════════════════════════════
 // 5 · BENEFITS
 // ════════════════════════════════════════════════════════════════════
 function renderBenefits(data){
@@ -1794,7 +1744,7 @@ function renderFuture(data){
   setText("future-with",    f.with_work);
 
   const af = f.age_forecast || {};
-  setText("forecast-lbl",  af.label || "Ваш персональный прогноз");
+  setText("forecast-lbl",  af.label || "Твой персональный прогноз");
   setText("forecast-text", af.text);
   const host = $('[data-slot="age-cards"]');
   host.innerHTML = "";
@@ -1842,7 +1792,7 @@ function renderDetails(data){
 // ════════════════════════════════════════════════════════════════════
 function renderFinal(data){
   const f = data.final_cta || {};
-  setText("final-lbl", f.label || "Ваш следующий шаг");
+  setText("final-lbl", f.label || "Твой следующий шаг");
   setRich("final-title", f.title);
   setText("final-text", f.text);
   setText("final-cta-text", f.button_text);
@@ -1884,7 +1834,6 @@ function renderReport(data){
   renderMainFocus(data);
   renderPotential(data);
   renderZoneMap(data);
-  renderProfile(data);
   renderBenefits(data);
   renderFuture(data);
   renderDetails(data);
