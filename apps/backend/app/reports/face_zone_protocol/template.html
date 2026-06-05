@@ -563,6 +563,13 @@ body {
         <div class="card-title">Какие изменения будут со временем</div>
         <div class="card-text" data-slot="why-text">Без регулярной работы отёчность может становиться устойчивее, взгляд — тяжелее, а овал лица — мягче. При регулярной работе можно дольше сохранять свежесть, чёткость черт и тонус.</div>
       </div>
+
+      <!-- 06: Age changes (first changes by age) -->
+      <div class="card card-age-changes" id="block-06">
+        <div class="card-num">06</div>
+        <div class="card-title" id="age-changes-title">Первые изменения по возрасту</div>
+        <div class="card-text" data-slot="age-changes-text">Для твоего типа старения первые перемены обычно проявляются постепенно. Сейчас — лучшее время начать мягко.</div>
+      </div>
     </div>
 
     <!-- RIGHT: 04 + 07 + 08 -->
@@ -685,6 +692,11 @@ const protocolData = {
     ]
   },
 
+  block_06_age_changes: {
+    title: "Первые изменения по возрасту",
+    text: "25–30: заметнее утренняя отёчность и мягкость зоны под глазами.\n\n30–35: нижняя треть и овал могут выглядеть тяжелее без поддержки оттока.\n\n35–40: ткани быстрее теряют чёткость, если не работать с шеей и лимфотоком.\n\nСейчас лучшее время работать мягко: главный фокус — зона глаз и средняя треть."
+  },
+
   block_07_facefitness_benefits: {
     text: "Фейсфитнес помогает лицу выглядеть свежее, легче и собраннее. При регулярной работе можно уменьшить отёчность, раскрыть взгляд, поддержать овал и мягко замедлять возрастные изменения.",
     items: [
@@ -717,6 +729,7 @@ function renderProtocol(d) {
   const strengthsBlock = d.block_03_strengths || d.block_06_strengths || {};
   const agingBlock = d.block_04_face_aging || d.block_03_face_aging || {};
   const zoneMap = d.zone_map || d.block_zone_map || d.block_04_zone_map || {};
+  const ageChangesBlock = d.block_06_age_changes || d.block_09_age_changes || {};
 
   // User
   setText("user-name", d.user.name);
@@ -749,6 +762,13 @@ function renderProtocol(d) {
 
   // 05 Why
   setText("why-text", d.block_05_why.text);
+
+  // 06 Age changes (first changes by age)
+  if (ageChangesBlock && ageChangesBlock.text) {
+    setText("age-changes-text", ageChangesBlock.text);
+    const acTitle = document.getElementById('age-changes-title');
+    if (acTitle && ageChangesBlock.title) acTitle.textContent = ageChangesBlock.title;
+  }
 
   // 04 Aging
   setText("aging-type", agingBlock.aging_type);

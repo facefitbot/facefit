@@ -1356,38 +1356,71 @@ def _png_future_description(type_id: str, component_ids: list[str], focus_phrase
     return _limit(" ".join([base, ai_hint, finish]), 330, base)
 
 
+def _age_band_labels(client_age: int) -> list[str]:
+    """Three ascending age ranges spanning ~20 years from the client's age.
+
+    Forecast horizon by current age (client request): below 30 → 40, 30–39 → 55,
+    40+ → 65. Interior boundaries are rounded to fives and kept strictly ascending,
+    so e.g. 24 → "24–30 / 30–35 / 35–40", 32 → "32–40 / 40–48 / 48–55",
+    45 → "45–52 / 52–58 / 58–65".
+    """
+    age = max(16, min(int(client_age or 30), 90))
+    if age < 30:
+        horizon = 40
+    elif age < 40:
+        horizon = 55
+    else:
+        horizon = 65
+    if horizon - age < 12:  # safety for older inputs near the cap
+        horizon = age + 18
+
+    def round5(value: float) -> int:
+        return int(round(value / 5.0) * 5)
+
+    span = horizon - age
+    b1 = max(age + 4, round5(age + span / 3.0))
+    b2 = max(b1 + 4, round5(age + span * 2.0 / 3.0))
+    horizon = max(horizon, b2 + 4)
+    return [f"{age}–{b1}", f"{b1}–{b2}", f"{b2}–{horizon}"]
+
+
 def _png_age_changes_text(type_id: str, component_ids: list[str], client_age: int, focus_phrase: str, strict_text: Any) -> str:
     canonical_components = _canonical_component_ids(component_ids)
     primary = canonical_components[0] if type_id == "tired_mixed" and canonical_components else type_id
     second = canonical_components[1] if type_id == "tired_mixed" and len(canonical_components) > 1 else None
     if primary == "muscular":
-        p1 = "25–30: чаще закрепляется напряжение лба, межбровья и жевательной зоны."
-        p2 = "30–35: мимические линии могут становиться глубже даже в покое."
-        p3 = "После 40: без расслабления лицо легче уходит в эффект строгого выражения."
+        d1 = "чаще закрепляется напряжение лба, межбровья и жевательной зоны."
+        d2 = "мимические линии могут становиться глубже даже в покое."
+        d3 = "без расслабления лицо легче уходит в эффект строгого выражения."
     elif primary == "deformation_edema":
-        p1 = "25–30: заметнее утренняя отечность и мягкость зоны под глазами."
-        p2 = "30–35: нижняя треть и овал могут выглядеть тяжелее без поддержки оттока."
-        p3 = "После 40: ткани быстрее теряют четкость, если не работать с шеей и лимфотоком."
+        d1 = "заметнее утренняя отечность и мягкость зоны под глазами."
+        d2 = "нижняя треть и овал могут выглядеть тяжелее без поддержки оттока."
+        d3 = "ткани быстрее теряют четкость, если не работать с шеей и лимфотоком."
     elif primary == "fine_wrinkle":
-        p1 = "25–30: кожа быстрее показывает сухость и тонкие линии вокруг глаз."
-        p2 = "30–35: может снижаться ощущение объема в щеках и губах."
-        p3 = "После 40: без питания тканей лицо выглядит суше, хотя контур держится."
+        d1 = "кожа быстрее показывает сухость и тонкие линии вокруг глаз."
+        d2 = "может снижаться ощущение объема в щеках и губах."
+        d3 = "без питания тканей лицо выглядит суше, хотя контур держится."
     else:
-        p1 = "25–30: быстрее считывается усталость взгляда и носослезной зоны."
-        p2 = "30–35: носогубная зона и уголки рта могут активнее выдавать усталость."
-        p3 = "После 40: без тонуса и микроциркуляции свежесть возвращается медленнее."
+        d1 = "быстрее считывается усталость взгляда и носослезной зоны."
+        d2 = "носогубная зона и уголки рта могут активнее выдавать усталость."
+        d3 = "без тонуса и микроциркуляции свежесть возвращается медленнее."
 
     if second == "deformation_edema":
-        p2 = "30–35: к этому может добавляться мягкость нижней трети и отечность."
+        d2 = "к этому может добавляться мягкость нижней трети и отечность."
     elif second == "muscular":
-        p2 = "30–35: к этому может добавляться напряжение межбровья и жевательной зоны."
+        d2 = "к этому может добавляться напряжение межбровья и жевательной зоны."
     elif second == "fine_wrinkle":
-        p2 = "30–35: к этому может добавляться сухость и мелкая сетка вокруг глаз."
+        d2 = "к этому может добавляться сухость и мелкая сетка вокруг глаз."
 
+    # Age-relative bands (~20 years out from the client's age), not fixed 25–30/30–35.
+    b1, b2, b3 = _age_band_labels(client_age)
+    p1 = f"{b1}: {d1}"
+    p2 = f"{b2}: {d2}"
+    p3 = f"{b3}: {d3}"
     intro = f"Сейчас, в {client_age}, лучшее время работать мягко: главный фокус — {focus_phrase}."
-    # Note: the AI strict_text "hint" is intentionally dropped here — it tended to repeat the
-    # 25–30 age theme already covered by p1, producing a duplicated run-on tail. Three clean
-    # age ranges + one closing sentence read better and keep block 06 compact.
+    # The AI strict_text "hint" is intentionally dropped here — it tended to repeat the first
+    # age theme, producing a duplicated run-on tail. Three clean bands + one closing sentence
+    # read better and keep block 06 compact.
     return _limit_keep_breaks("\n\n".join([p1, p2, p3, intro]), 330, "\n\n".join([p1, p2, p3]))
 
 
@@ -1649,13 +1682,22 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
             "contours": zone_map.get("contours") or {},
             "quality": zone_map.get("quality") or {},
         }
+        # 05 = qualitative "what changes over time"; 06 = age-relative bands (kept distinct,
+        # not collapsed into one block — that is what filled the center column in the good ref).
         merged["block_05_why"] = {
-            "text": changes_text,
+            "text": _meaningful(
+                protocol_changes.get("intro"),
+                "Без регулярной работы изменения закрепляются постепенно; при мягкой поддержке свежесть, тонус и чёткость черт сохраняются дольше.",
+            ),
             "reasons": age_stages,
         }
         merged["block_06_age_changes"] = {
-            "title": "",
-            "text": "",
+            "title": "Первые изменения по возрасту",
+            "text": _limit_keep_breaks(
+                _dict(data.get("age_changes")).get("text") or "\n\n".join(age_stages),
+                430,
+                "",
+            ),
         }
         merged["block_03_face_aging"] = merged["block_04_face_aging"]
         merged["block_04_zone_map"] = merged["zone_map"]
@@ -1742,20 +1784,18 @@ def _with_v3_template_aliases(data: dict[str, Any]) -> dict[str, Any]:
         "bullets": compact["face_and_aging_type"]["bullets"],
     }
     merged["zone_map"] = {"zones": _v3_template_zones(zone_map), "contours": zone_map.get("contours") or {}, "quality": zone_map.get("quality") or {}}
+    # 05 = qualitative "what changes over time"; 06 = age-relative bands (kept distinct).
     merged["block_05_why"] = {
-        "text": "\n\n".join(
-            text
-            for text in [
-                _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
-                _limit_keep_breaks(_dict(data.get("age_changes")).get("text") or _full_text("age_changes"), 430, ""),
-            ]
-            if text
-        ),
+        "text": _png_block_text(why.get("description") or _full_text("future_changes"), 330, ""),
         "reasons": compact["future_changes"]["bullets"],
     }
     merged["block_06_age_changes"] = {
-        "title": "",
-        "text": "",
+        "title": "Первые изменения по возрасту",
+        "text": _limit_keep_breaks(
+            _dict(data.get("age_changes")).get("text") or _full_text("age_changes"),
+            430,
+            "",
+        ),
     }
 
     # Backward-compatible aliases for older previews/templates.
